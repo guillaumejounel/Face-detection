@@ -42,7 +42,7 @@ def afficherImgRect(n, data, pathTrain):
     ax.add_patch(rect)
     plt.show()
 
-afficherImgRect(14, data, pathTrain)
+afficherImgRect(14, newData, pathTrain)
 
 def cropImage(n, data, pathTrain):
     img = np.array(Image.open(pathTrain +"%04d"%(n)+".jpg"), dtype=np.uint8)
@@ -51,6 +51,18 @@ def cropImage(n, data, pathTrain):
     io.imshow(img)
 
 cropImage(14,data,pathTrain)
+
+def dataSquare(data):
+    # Récupération du rectangle
+    # Transformation en carré
+    newData = 
+    minwh = np.minimum(data[:,3], data[:,4])
+    data[:,0] += (data[:,3]-minwh)//2
+    data[:,1] += (data[:,4]-minwh)//2
+    data[:,3:] = np.min(data[:,3:])
+    return data
+
+newData = dataSquare(data)
 
 from skimage.transform import resize
 def cropImageSquare(n, data, pathTrain, newsize):
@@ -88,6 +100,22 @@ def recouvrement(x1, y1, w1, h1, x2, y2, w2, h2):
     return ainter/aunion
 
 print(recouvrement(10,10,30,30,25,25,30,30))
+
+
+img = np.array(Image.open(pathTrain +"%04d"%(14)+".jpg"), dtype=np.uint8)
+def negatifRandom(data,pathTrain,window,img):
+    while True:
+        x1, y1, w1, h1 = map(int, data[14-1][1:])
+        w, h = [len(img[0]), len(img)]
+        ratio = np.random.uniform(low=max(window/w, window/h), high=1)
+        tmp = resize(img, (int(h*ratio), int(w*ratio)), mode='reflect')
+        x = int(np.random.uniform(low=0, high=len(tmp[0])-window))
+        y = int(np.random.uniform(low=0, high=len(tmp)-window))
+        if recouvrement(x1,y1,w1,h1,x,y,int(window*ratio), int(window*ratio)) < 0.5:
+            print("recouvrement:",recouvrement(x1,y1,w1,h1,x,y,int(window*ratio), int(window*ratio)))
+            return tmp[y:y+window, x:x+window]
+
+io.imshow(negatifRandom(data,pathTrain,newSize,img))
 
 def exemplesNegatifs(n, data, pathTrain, newsize):
     images = np.zeros((len(data)*n,newsize,newsize))
