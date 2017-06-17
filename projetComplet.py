@@ -8,6 +8,7 @@ This is a temporary script file.
 import numpy as np
 from skimage import io
 from skimage import util
+from skimage.transform import resize
 from skimage import color
 #from skimage import feature
 from sklearn import svm
@@ -15,18 +16,18 @@ import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 from PIL import Image
 
+
 absolutePath = "/Users/guillaume/Cloud/WORK/UTC/GI02/SY32/TDXu/Projet/"
 pathTrain = absolutePath + "projetface/train/"
 pathTest =  absolutePath + "projetface/test/"
 pathFile = absolutePath + "projetface/label.txt"
 data = np.loadtxt(pathFile)
 
-
-def smallestFace(data):
+def minFace(data):
     return int(np.min(data[:,3:]))
 
-newSize = smallestFace(data)
-print("smallestFace =", newSize)
+newSize = minFace(data)
+print("minFace =", newSize)
 
 def afficherImgRect(n, data, pathTrain):
     # Charger l'image
@@ -42,91 +43,92 @@ def afficherImgRect(n, data, pathTrain):
     ax.add_patch(rect)
     plt.show()
 
-afficherImgRect(14, newData, pathTrain)
+afficherImgRect(14, data, pathTrain)
 
-def cropImage(n, data, pathTrain):
-    img = np.array(Image.open(pathTrain +"%04d"%(n)+".jpg"), dtype=np.uint8)
-    x, y, w, h = map(int, data[n-1][1:])
+def cropImage(n, data, pathTrain, newsize=0):
+    img = np.array(Image.open(pathTrain +"%04d"%(data[n,0])+".jpg"), dtype=np.uint8)
+    x, y, w, h = map(int, data[n][1:])
     img = img[y:y+h, x:x+w]
-    io.imshow(img)
+    if newsize:
+        img = resize(img, (newsize, newsize), mode='reflect')
+    return img
 
-cropImage(14,data,pathTrain)
-
-def dataSquare(data):
-    # Récupération du rectangle
-    # Transformation en carré
-    newData = 
-    minwh = np.minimum(data[:,3], data[:,4])
-    data[:,0] += (data[:,3]-minwh)//2
-    data[:,1] += (data[:,4]-minwh)//2
-    data[:,3:] = np.min(data[:,3:])
-    return data
-
-newData = dataSquare(data)
-
-from skimage.transform import resize
-def cropImageSquare(n, data, pathTrain, newsize):
-    # Chargement de l'image
-    img = np.array(Image.open(pathTrain +"%04d"%(n)+".jpg"), dtype=np.uint8)
-    # Récupération du rectangle
-    x, y, w, h = map(int, data[n-1][1:])
-    # Transformation en carré
-    minwh = min(w,h)
-    x+=(w-minwh)//2 # Pour centrer le carré //2
-    y+=(h-minwh)//2
-    # Recadrement de l'image
-    img = img[y:y+minwh, x:x+minwh]
-    # Redimensionnement de l'image
-    return resize(img, (newsize, newsize), mode='reflect')
-
+image = cropImage(14,data,pathTrain)
 fig,ax = plt.subplots(1)
-ax.imshow(cropImageSquare(14,data,pathTrain, newSize))
+ax.imshow(image)
 plt.show()
 
-def exemplesPositifs(data, pathTrain, newsize):
+
+def dataSquare(data):
+    # Récupération des "rectangles"
+    newData = np.array(data)
+    # Récupération du minimum entre la largeur et la hauteur
+    minwh = np.minimum(data[:,3], data[:,4])
+    # Modification de la largeur
+    newData[:,1] += (data[:,3]-minwh)//2
+    # Modification de la hauteur
+    newData[:,2] += (data[:,4]-minwh)//2
+    # Transformation des rectangles en carrés
+    newData[:,3:] = np.transpose(np.array([minwh, minwh]))
+    return newData
+
+# Calcul des nouvelles coordonnées
+dataPositif = dataSquare(data)
+
+# Affichage des coordonnées sur une images
+afficherImgRect(14, dataPositif, pathTrain)
+
+#Recadrement et redimensionnement de l'image
+image = cropImage(14,dataPositif,pathTrain, newSize)
+fig,ax = plt.subplots(1)
+ax.imshow(image)
+plt.show()
+
+def donneesImages(data, pathTrain, newsize):
     images = np.zeros((len(data),newsize,newsize))
     for i in range(len(data)):
-        images[i] = color.rgb2gray(cropImageSquare(i+1, data, pathTrain, newsize))
+        images[i] = color.rgb2gray(cropImage(i, data, pathTrain, newsize))
     return images
 
-exPos = exemplesPositifs(data, pathTrain, newSize)
-io.imshow(exPos[13])
-
-def recouvrement(x1, y1, w1, h1, x2, y2, w2, h2):
-    xinter = max(0, min(x1+w1,x2+w2) - max(x1,x2))
-    yinter = max(0, min(y1+h1,y2+h2) - max(y1,y2));
-    ainter = xinter * yinter;
-    aunion = (w1*h1) + (w2*h2) - ainter
-    return ainter/aunion
-
-print(recouvrement(10,10,30,30,25,25,30,30))
+exemplesPositifs = donneesImages(dataPositif, pathTrain, newSize)
+fig,ax = plt.subplots(1)
+ax.imshow(exemplesPositifs[13])
+plt.show()
 
 
 img = np.array(Image.open(pathTrain +"%04d"%(14)+".jpg"), dtype=np.uint8)
-def negatifRandom(data,pathTrain,window,img):
+def negatifRandom(data,pathTrain,newsize,n):
     while True:
-        x1, y1, w1, h1 = map(int, data[14-1][1:])
+        # Récupération de l'image
+        img = np.array(Image.open(pathTrain +"%04d"%(n)+".jpg"), dtype=np.uint8)
+        # Récupération de ses caractéristiques
+        x1, y1, w1, h1 = map(int, data[n-1][1:])
         w, h = [len(img[0]), len(img)]
-        ratio = np.random.uniform(low=max(window/w, window/h), high=1)
-        tmp = resize(img, (int(h*ratio), int(w*ratio)), mode='reflect')
-        x = int(np.random.uniform(low=0, high=len(tmp[0])-window))
-        y = int(np.random.uniform(low=0, high=len(tmp)-window))
-        if recouvrement(x1,y1,w1,h1,x,y,int(window*ratio), int(window*ratio)) < 0.5:
-            print("recouvrement:",recouvrement(x1,y1,w1,h1,x,y,int(window*ratio), int(window*ratio)))
-            return tmp[y:y+window, x:x+window]
+        # Choix aléatoire d'une taille de fenêtre
+        taille = int(np.random.uniform(low=newsize, high=min(w,h)))
+        # Choix aléatoire de la position de la fenêtre
+        x = int(np.random.uniform(low=0, high=w-taille))
+        y = int(np.random.uniform(low=0, high=h-taille))
+        # Test du score de recouvrement de la fenêtre
+        if recouvrement(x1,y1,w1,h1,x,y,taille,taille) < 0.5:
+            return n, x, y, taille, taille
 
-io.imshow(negatifRandom(data,pathTrain,newSize,img))
+print(negatifRandom(data,pathTrain,newSize,14))
 
 def exemplesNegatifs(n, data, pathTrain, newsize):
-    images = np.zeros((len(data)*n,newsize,newsize))
+    newData = np.zeros((len(data)*n, 5))
     # Pour chaque image
     for i in range(len(data)):
         # On cherche n exemples négatifs
         for j in range(n):
-            print("image",i, " (i:",i,", j:",j,", ite",(i*n) +j,")")
-    return images
+            newData[i*n+j,:] = negatifRandom(data,pathTrain,newsize,i+1)
+    return newData
 
-exNeg = exemplesNegatifs(10, data, pathTrain, newSize)
+dataNegatif = exemplesNegatifs(10, data, pathTrain, newSize)
 
-      
-      
+exemplesNegatifs = donneesImages(dataNegatif, pathTrain, newSize)
+
+fig,ax = plt.subplots(1)
+
+ax.imshow(exemplesNegatifs[13])
+plt.show()
