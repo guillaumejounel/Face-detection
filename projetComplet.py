@@ -1,10 +1,7 @@
-# -*- coding: utf-8 -*-
-"""
-Spyder Editor
+ #-*- coding: utf-8 -*-
 
-This is a temporary script file.
-"""
-
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# imports et définition des paths
 import numpy as np
 from skimage import io
 from skimage import util
@@ -15,120 +12,64 @@ from sklearn import svm
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 from PIL import Image
+import pyfacedetect.image as libimg
 
+# changer le chemin de IPython
+# avec la commande "%bookmark  NOM_DU_MARQUE_PAGE /path/to/dir"
+# %bookmark PROJET /Users/guillaume/Cloud/WORK/UTC/GI02/SY32/TDXu/Projet/
+# (à ne faire qu'une fois, normalement c'est persistant)
+# puis lancer la commande "%cd -b PROJET" en début de session.
 
-absolutePath = "/Users/guillaume/Cloud/WORK/UTC/GI02/SY32/TDXu/Projet/"
-pathTrain = absolutePath + "projetface/train/"
-pathTest =  absolutePath + "projetface/test/"
-pathFile = absolutePath + "projetface/label.txt"
+pathTrain = "projetface/train/"
+pathTest =  "projetface/test/"
+pathFile = "projetface/label.txt"
 data = np.loadtxt(pathFile)
 
-def minFace(data):
-    return int(np.min(data[:,3:]))
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# génération des exemples
 
-newSize = minFace(data)
-print("minFace =", newSize)
+# détermination de la taille des carrés
+newSize = libimg.minFace(data)
+print("taille des carrés : ", newSize)
 
-def afficherImgRect(n, data, pathTrain):
-    # Charger l'image
-    img = np.array(Image.open(pathTrain +"%04d"%(n)+".jpg"), dtype=np.uint8)
-    # Créer la figure et les axes
-    fig,ax = plt.subplots(1)
-    # Afficher l'image
-    ax.imshow(img)
-    # Créer le rectangle 
-    xcorner, ycorner, width, height = data[n-1][1:]
-    rect = patches.Rectangle((xcorner, ycorner), width, height,linewidth=2,edgecolor='r', facecolor='none')
-    # Ajouter le rectangle sur l'image
-    ax.add_patch(rect)
-    plt.show()
+# Calcul des nouvelles datas et de coordonnées
+dataPositif = libimg.dataSquare(data)
 
-afficherImgRect(14, data, pathTrain)
+# on calcul le nouvel set d'image (en noir & blanc)
+print("Calcul du set d'image positif")
+exemplesPositifs = libimg.donneesImages(dataPositif, pathTrain, newSize)
 
-def cropImage(n, data, pathTrain, newsize=0):
-    img = np.array(Image.open(pathTrain +"%04d"%(data[n,0])+".jpg"), dtype=np.uint8)
-    x, y, w, h = map(int, data[n][1:])
-    img = img[y:y+h, x:x+w]
-    if newsize:
-        img = resize(img, (newsize, newsize), mode='reflect')
-    return img
+# Génération des exemples négatifs (nb_neg par images)
+print("Calcul du set d'image negatif")
+factor_neg = 1
+dataNegatif = libimg.exemplesNegatifs(factor_neg, data, pathTrain, newSize)
+exemplesNegatifs = libimg.donneesImages(dataNegatif, pathTrain, newSize)
 
-image = cropImage(14,data,pathTrain)
-fig,ax = plt.subplots(1)
-ax.imshow(image)
-plt.show()
+print("Génération d'exemple terminée !")
 
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Création du classifieur
 
-def dataSquare(data):
-    # Récupération des "rectangles"
-    newData = np.array(data)
-    # Récupération du minimum entre la largeur et la hauteur
-    minwh = np.minimum(data[:,3], data[:,4])
-    # Modification de la largeur
-    newData[:,1] += (data[:,3]-minwh)//2
-    # Modification de la hauteur
-    newData[:,2] += (data[:,4]-minwh)//2
-    # Transformation des rectangles en carrés
-    newData[:,3:] = np.transpose(np.array([minwh, minwh]))
-    return newData
+# TODO nb dynamiques
+nb_pos = 1000
+nb_neg = factor_neg * nb_pos
 
-# Calcul des nouvelles coordonnées
-dataPositif = dataSquare(data)
+# concaténation des exemples
+exemples = np.concatenate((exemplesPositifs, exemplesNegatifs), axis=1)
+exemples = np.reshape(exemples,(nb_pos + nb_neg, 900))
 
-# Affichage des coordonnées sur une images
-afficherImgRect(14, dataPositif, pathTrain)
+# vérification
+# exemples = np.reshape(exemples,(nb_pos + nb_neg, 30,30))
+# plt.figure(1)
+# plt.imshow(exemples[14])
+# plt.show()
 
-#Recadrement et redimensionnement de l'image
-image = cropImage(14,dataPositif,pathTrain, newSize)
-fig,ax = plt.subplots(1)
-ax.imshow(image)
-plt.show()
+y = np.concatenate((np.ones(nb_pos), np.zeros(nb_neg)))
 
-def donneesImages(data, pathTrain, newsize):
-    images = np.zeros((len(data),newsize,newsize))
-    for i in range(len(data)):
-        images[i] = color.rgb2gray(cropImage(i, data, pathTrain, newsize))
-    return images
+clf = svm.SVC(kernel='linear')
+clf.fit(exemples,y)
 
-exemplesPositifs = donneesImages(dataPositif, pathTrain, newSize)
-fig,ax = plt.subplots(1)
-ax.imshow(exemplesPositifs[13])
-plt.show()
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# test du classifieur
 
-
-img = np.array(Image.open(pathTrain +"%04d"%(14)+".jpg"), dtype=np.uint8)
-def negatifRandom(data,pathTrain,newsize,n):
-    while True:
-        # Récupération de l'image
-        img = np.array(Image.open(pathTrain +"%04d"%(n)+".jpg"), dtype=np.uint8)
-        # Récupération de ses caractéristiques
-        x1, y1, w1, h1 = map(int, data[n-1][1:])
-        w, h = [len(img[0]), len(img)]
-        # Choix aléatoire d'une taille de fenêtre
-        taille = int(np.random.uniform(low=newsize, high=min(w,h)))
-        # Choix aléatoire de la position de la fenêtre
-        x = int(np.random.uniform(low=0, high=w-taille))
-        y = int(np.random.uniform(low=0, high=h-taille))
-        # Test du score de recouvrement de la fenêtre
-        if recouvrement(x1,y1,w1,h1,x,y,taille,taille) < 0.5:
-            return n, x, y, taille, taille
-
-print(negatifRandom(data,pathTrain,newSize,14))
-
-def exemplesNegatifs(n, data, pathTrain, newsize):
-    newData = np.zeros((len(data)*n, 5))
-    # Pour chaque image
-    for i in range(len(data)):
-        # On cherche n exemples négatifs
-        for j in range(n):
-            newData[i*n+j,:] = negatifRandom(data,pathTrain,newsize,i+1)
-    return newData
-
-dataNegatif = exemplesNegatifs(10, data, pathTrain, newSize)
-
-exemplesNegatifs = donneesImages(dataNegatif, pathTrain, newSize)
-
-fig,ax = plt.subplots(1)
-
-ax.imshow(exemplesNegatifs[13])
-plt.show()
+print(np.mean(clf.predict(exemples) != y)*100)
