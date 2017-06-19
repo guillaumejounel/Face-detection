@@ -34,7 +34,7 @@ def afficherImgRect(n, data, pathTrain):
 # retourne l'image croppé selon le rectancle
 # si l'argument newsize vaut 1 / True croppe selon un carré
 def cropImage(n, data, pathTrain, newsize=0):
-    img = np.array(Image.open(pathTrain +"%04d"%(data[n,0])+".jpg"),
+    img = np.array(Image.open(pathTrain + "%04d" %(data[n, 0]) + ".jpg"),
                    dtype=np.uint8)
     x, y, w, h = map(int, data[n][1:])
     img = img[y:y+h, x:x+w]
@@ -47,13 +47,13 @@ def dataSquare(data):
     # Récupération des "rectangles"
     newData = np.array(data)
     # Récupération du minimum entre la largeur et la hauteur
-    minwh = np.minimum(data[:,3], data[:,4])
+    minwh = np.minimum(data[:, 3], data[:, 4])
     # Modification de la largeur
-    newData[:,1] += (data[:,3]-minwh)//2
+    newData[:, 1] += (data[:, 3]-minwh)//2
     # Modification de la hauteur
-    newData[:,2] += (data[:,4]-minwh)//2
+    newData[:, 2] += (data[:, 4]-minwh)//2
     # Transformation des rectangles en carrés
-    newData[:,3:] = np.transpose(np.array([minwh, minwh]))
+    newData[:, 3:] = np.transpose(np.array([minwh, minwh]))
     return newData
 
 # retourne un array avec les images croppées
@@ -67,7 +67,7 @@ def donneesImages(data, pathTrain, newsize):
 def negatifRandom(data,pathTrain,newsize,n):
     while True:
         # Récupération de l'image
-        img = np.array(Image.open(pathTrain +"%04d"%(n)+".jpg"),
+        img = np.array(Image.open(pathTrain + "%04d" % (n) + ".jpg"),
                        dtype=np.uint8)
         # Récupération de ses caractéristiques
         x1, y1, w1, h1 = map(int, data[n-1][1:])
@@ -93,20 +93,20 @@ def exemplesNegatifs(n, data, pathTrain, newsize):
 
 # revoie le recouvrement de deux carrés
 def recouvrement(x1, y1, w1, h1, x2, y2, w2, h2):
-    xinter = max(0, min(x1+w1,x2+w2) - max(x1,x2))
-    yinter = max(0, min(y1+h1,y2+h2) - max(y1,y2));
-    ainter = xinter * yinter;
+    xinter = max(0, min(x1 + w1, x2 + w2) - max(x1, x2))
+    yinter = max(0, min(y1 + h1, y2 + h2) - max(y1, y2))
+    ainter = xinter * yinter
     aunion = (w1*h1) + (w2*h2) - ainter
     return ainter/aunion
 
 ##############################################################################
 
-# renvoie les coordonnées de la fenêtre glissante suivante
-# en fonction de n l'indice de l'image, les coordonnées de la fenêtre actuelle
+# renvoie les coordonnées de la fenetre glissante suivante
+# en fonction de n l'indice de l'image, les coordonnees de la fenetre actuelle
 # le pas horizontal et le pas vertical
 def fenetre_gliss_suiv(img, x, y, w, h, pas_hor, pas_vert, limite_x, limite_y):
 
-    # on commence par le cas "trivial" : on décale la fenêtre selon x
+    # on commence par le cas "trivial" : on décale la fenetre selon x
     x_next = x + pas_hor
     if (x_next + w) <= limite_x:
         return x_next, y
@@ -114,7 +114,7 @@ def fenetre_gliss_suiv(img, x, y, w, h, pas_hor, pas_vert, limite_x, limite_y):
     # On doit revenir à la ligne
     x_next = 0
     y_next = y + pas_vert
-    if y_next + h <= limite_y :
+    if y_next + h <= limite_y:
         return x_next, y_next
 
     # sinon, on a fini de parcourir l'image, on renvoie une erreur
@@ -143,7 +143,7 @@ def fenetre_glissante(clf, img, w, h, pas_hor, pas_vert):
             x_tmp = i*pas_hor
             y_tmp = j*pas_vert
 
-            img_tmp = img[y_tmp : y_tmp + h, x_tmp : x_tmp + w]
+            img_tmp = img[y_tmp:y_tmp + h, x_tmp:x_tmp + w]
             img_tmp = np.reshape(img_tmp, (1, h*w))
 
             data[indice] = [clf.decision_function(img_tmp), x_tmp, y_tmp, w, h]
@@ -152,12 +152,12 @@ def fenetre_glissante(clf, img, w, h, pas_hor, pas_vert):
     for i in range(0, dim_x):
         x_tmp = i*pas_hor
         y_tmp = limite_y - h
-        img_tmp = img[y_tmp : y_tmp + h, x_tmp : x_tmp + w]
+        img_tmp = img[y_tmp:y_tmp + h, x_tmp:x_tmp + w]
         img_tmp = np.reshape(img_tmp, (1, h*w))
 
         data[indice] = [clf.decision_function(img_tmp), x_tmp, y_tmp, w, h]
 
-        indice +=1
+        indice += 1
 
     return data
 
@@ -172,15 +172,15 @@ def afficher_fenetre_gliss(img, data_fenetre, pathTrain):
     for i in range(1, np.size(data_fenetre, 0) + 1):
         score, xcorner, ycorner, width, height = data_fenetre[i-1]
 
-        if score >= 1 :
+        if score >= 1:
             color = 'g'
         else:
             color = 'r'
 
-        rect = patches.Rectangle((xcorner, ycorner), width, height,
-                                 linewidth=2,edgecolor=color, facecolor='none')
+        rect = patches.Rectangle((xcorner, ycorner), width,
+                                 height, linewidth=2, edgecolor=color,
+                                 facecolor='none')
         # Ajouter le rectangle sur l'image
         ax.add_patch(rect)
 
     plt.show()
-

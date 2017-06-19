@@ -1,13 +1,13 @@
  #-*- coding: utf-8 -*-
 
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # imports et définition des paths
 import numpy as np
 from skimage import io
 from skimage import util
 from skimage.transform import resize
 from skimage import color
-#from skimage import feature
+# from skimage import feature
 from sklearn import svm
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
@@ -25,7 +25,7 @@ pathTest = "projetface/test/"
 pathFile = "projetface/label.txt"
 data = np.loadtxt(pathFile)
 
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # génération des exemples
 
 # détermination de la taille des carrés
@@ -47,7 +47,7 @@ exemplesNegatifs = libimg.donneesImages(dataNegatif, pathTrain, newSize)
 
 print("Génération d'exemple terminée !")
 
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Création du classifieur
 
 # TODO nb dynamiques
@@ -69,7 +69,7 @@ y = np.concatenate((np.ones(nb_pos), np.zeros(nb_neg)))
 clf = svm.SVC(kernel='linear')
 clf.fit(exemples,y)
 
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # test du classifieur
 
 print(np.mean(clf.predict(exemples) != y)*100)

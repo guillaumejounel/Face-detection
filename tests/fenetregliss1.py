@@ -6,6 +6,8 @@ Created on Mon Jun 19 12:10:00 2017
 @author: marie
 """
 
+# à lancer après ./projetcomplet.py
+
 import pyfacedetect.image as libimg
 
 img = np.array(Image.open(pathTrain +"%04d"%(14)+".jpg"), dtype=np.uint8)
