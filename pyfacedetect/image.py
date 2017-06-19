@@ -9,9 +9,11 @@ import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 from PIL import Image
 
+
 # retourne la taille minimale d'un visage
-def minFace(data):
+def minFace(data) :
     return int(np.min(data[:,3:]))
+
 
 # affiche une image avec le rectangle associé
 def afficherImgRect(n, data, pathTrain):
@@ -96,3 +98,89 @@ def recouvrement(x1, y1, w1, h1, x2, y2, w2, h2):
     ainter = xinter * yinter;
     aunion = (w1*h1) + (w2*h2) - ainter
     return ainter/aunion
+
+##############################################################################
+
+# renvoie les coordonnées de la fenêtre glissante suivante
+# en fonction de n l'indice de l'image, les coordonnées de la fenêtre actuelle
+# le pas horizontal et le pas vertical
+def fenetre_gliss_suiv(img, x, y, w, h, pas_hor, pas_vert, limite_x, limite_y):
+
+    # on commence par le cas "trivial" : on décale la fenêtre selon x
+    x_next = x + pas_hor
+    if (x_next + w) <= limite_x:
+        return x_next, y
+
+    # On doit revenir à la ligne
+    x_next = 0
+    y_next = y + pas_vert
+    if y_next + h <= limite_y :
+        return x_next, y_next
+
+    # sinon, on a fini de parcourir l'image, on renvoie une erreur
+    return -1, -1
+
+
+# renvoie l'ensemble des fenêtres glissantes, triées par score
+# renvoie un array de "fenetres" sous la forme score, x, y, w, h
+def fenetre_glissante(clf, img, w, h, pas_hor, pas_vert):
+    img = color.rgb2gray(img)
+
+    # on détermine les bordures de l'image
+    limite_x = np.size(img, 1)
+    limite_y = np.size(img, 0)
+
+    # calcul du nombre de fenetres glissantes
+    dim_x = int((limite_x - w) / pas_hor) + 1
+    dim_y = int((limite_y - h) / pas_vert) + 1
+    data = np.zeros((dim_x*(dim_y + 1), 5))
+
+    print("nb pas_x", dim_x, "nb pas_y", dim_y)
+
+    indice = 0
+    for i in range(0, dim_x):
+        for j in range(0, dim_y):
+            x_tmp = i*pas_hor
+            y_tmp = j*pas_vert
+
+            img_tmp = img[y_tmp : y_tmp + h, x_tmp : x_tmp + w]
+            img_tmp = np.reshape(img_tmp, (1, h*w))
+
+            data[indice] = [clf.decision_function(img_tmp), x_tmp, y_tmp, w, h]
+            indice += 1
+
+    for i in range(0, dim_x):
+        x_tmp = i*pas_hor
+        y_tmp = limite_y - h
+        img_tmp = img[y_tmp : y_tmp + h, x_tmp : x_tmp + w]
+        img_tmp = np.reshape(img_tmp, (1, h*w))
+
+        data[indice] = [clf.decision_function(img_tmp), x_tmp, y_tmp, w, h]
+
+        indice +=1
+
+    return data
+
+
+# affiche une image avec le rectangle associé
+def afficher_fenetre_gliss(img, data_fenetre, pathTrain):
+    # Créer la figure et les axes
+    fig,ax = plt.subplots(1)
+    # Afficher l'image
+    ax.imshow(img)
+    # Créer le rectangle
+    for i in range(1, np.size(data_fenetre, 0) + 1):
+        score, xcorner, ycorner, width, height = data_fenetre[i-1]
+
+        if score >= 1 :
+            color = 'g'
+        else:
+            color = 'r'
+
+        rect = patches.Rectangle((xcorner, ycorner), width, height,
+                                 linewidth=2,edgecolor=color, facecolor='none')
+        # Ajouter le rectangle sur l'image
+        ax.add_patch(rect)
+
+    plt.show()
+

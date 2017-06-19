@@ -21,7 +21,7 @@ import pyfacedetect.image as libimg
 # puis lancer la commande "%cd -b PROJET" en début de session.
 
 pathTrain = "projetface/train/"
-pathTest =  "projetface/test/"
+pathTest = "projetface/test/"
 pathFile = "projetface/label.txt"
 data = np.loadtxt(pathFile)
 
@@ -73,3 +73,4 @@ clf.fit(exemples,y)
 # test du classifieur
 
 print(np.mean(clf.predict(exemples) != y)*100)
+
