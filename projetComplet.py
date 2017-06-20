@@ -13,6 +13,7 @@ import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 from PIL import Image
 import pyfacedetect.image as libimg
+import pyfacedetect.learn as liblearn
 
 # changer le chemin de IPython
 # avec la commande "%bookmark  NOM_DU_MARQUE_PAGE /path/to/dir"
@@ -74,3 +75,4 @@ clf.fit(exemples,y)
 
 print(np.mean(clf.predict(exemples) != y)*100)
 
+print('validation croisée :', liblearn.validationCroisee(exempls, y, 5))
