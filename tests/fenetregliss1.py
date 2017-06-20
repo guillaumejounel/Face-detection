@@ -11,5 +11,5 @@ Created on Mon Jun 19 12:10:00 2017
 import pyfacedetect.image as libimg
 
 img = np.array(Image.open(pathTrain +"%04d"%(14)+".jpg"), dtype=np.uint8)
-data_f = libimg.fenetre_glissante(clf, img, 30, 30, 15,20)
+data_f = libimg.fenetre_glissante(clf, img, 30, 30, 15,20, return_pos=0)
 libimg.afficher_fenetre_gliss(img, data_f, pathTrain)

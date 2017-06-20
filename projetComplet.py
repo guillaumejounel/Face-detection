@@ -65,8 +65,10 @@ exemples = np.reshape(exemples,(nb_pos + nb_neg, 900))
 # plt.imshow(exemples[14])
 # plt.show()
 
+# TODO 1 ou -1 !
 y = np.concatenate((np.ones(nb_pos), np.zeros(nb_neg)))
 
+print("Création du classifieur")
 clf = svm.SVC(kernel='linear')
 clf.fit(exemples,y)
 
@@ -75,4 +77,4 @@ clf.fit(exemples,y)
 
 print(np.mean(clf.predict(exemples) != y)*100)
 
-print('validation croisée :', liblearn.validationCroisee(exempls, y, 5))
+print('validation croisée :', liblearn.validationCroisee(exemples, y, 5))

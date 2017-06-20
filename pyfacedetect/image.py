@@ -140,7 +140,8 @@ def fenetre_glissante(clf, img, w, h, pas_hor, pas_vert, return_pos=1):
     # calcul du nombre de fenetres glissantes
     dim_x = int((limite_x - w) / pas_hor) + 1
     dim_y = int((limite_y - h) / pas_vert) + 1
-    data = np.zeros((dim_x + 1) * (dim_y + 1), 5)
+    print(dim_x, dim_y)
+    data = np.zeros(((dim_x + 1) * (dim_y + 1), 5))
 
     # print("nb pas_x", dim_x, "nb pas_y", dim_y)
 
