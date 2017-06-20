@@ -56,11 +56,18 @@ def dataSquare(data):
     newData[:, 3:] = np.transpose(np.array([minwh, minwh]))
     return newData
 
+# filtre gradient
+def filtreLineaire(image):
+    grad = np.gradient(image)
+    return np.sqrt(grad[0]*grad[0]+grad[1]*grad[1])
+
 # retourne un array avec les images croppées
 def donneesImages(data, pathTrain, newsize):
-    images = np.zeros((len(data),newsize,newsize))
+    images = np.zeros((2*len(data),newsize,newsize))
     for i in range(len(data)):
-        images[i] = color.rgb2gray(cropImage(i, data, pathTrain, newsize))
+        img = filtreLineaire(color.rgb2gray(cropImage(i, data, pathTrain, newsize)))
+        images[2*i] = img
+        images[2*i+1] = np.fliplr(img)
     return images
 
 # gives an negative example from the n^th image
@@ -135,7 +142,7 @@ def fenetre_glissante(clf, img, w, h, pas_hor, pas_vert, return_pos=1):
     dim_y = int((limite_y - h) / pas_vert) + 1
     data = np.zeros((dim_x + 1) * (dim_y + 1), 5)
 
-    # print("nb pas_x", dim_x, "nb pas_y", dim_y)
+    # print("nb pas_x", dim_x, "nb pas_y", dim_y)
 
     indice = 0
     # on parcourt l'ensemble de l'image selon x, y
@@ -199,3 +206,28 @@ def afficher_fenetre_gliss(img, data_fenetre, pathTrain, only_pos=0):
             ax.add_patch(rect)
 
     plt.show()
+
+
+# supprime les boites "non maximales" (facteur de recouvrement)
+def suppressionNonMaximas(data, facteur=0.3):
+    # Tri des boîtes par ordre décroissant de score
+    data.view('i8,i8,i8,i8,i8')[::-1].sort(order=['f0'], axis=0)
+    i = 0
+    # Pour chaque boite dans la liste
+    while (i < len(data)):
+        scorei, xi, yi, wi, hi = data[i]
+        # On compare aux boites suivantes
+        for j in range(i+1, len(data)):
+            xj, yj, wj, hj = data[j][1:]
+            print("Comparaison de",i,"et",j, "(recouvrement de ",recouvrement(xi,yi,wi,hi,xj,yj,wj,hj),")")
+            # Si leur recouvrement est supérieur à 50% on ne les considère plus
+            if recouvrement(xi,yi,wi,hi,xj,yj,wj,hj) > facteur:
+                print("on ne garde pas",j)
+                data[j][0] = 0
+        # On passe à la boîte suivante
+        i+=1
+        # On saute les boîtes qui ont été éliminées
+        while i < len(data) and data[i][0] == 0:
+            i+=1
+    # Retourne les boites qui n'ont pas été éliminées
+    return data[data[:,0] != 0]

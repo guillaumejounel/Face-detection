@@ -42,7 +42,7 @@ exemplesPositifs = libimg.donneesImages(dataPositif, pathTrain, newSize)
 
 # Génération des exemples négatifs (nb_neg par images)
 print("Calcul du set d'image negatif")
-factor_neg = 1
+factor_neg = 10
 dataNegatif = libimg.exemplesNegatifs(factor_neg, data, pathTrain, newSize)
 exemplesNegatifs = libimg.donneesImages(dataNegatif, pathTrain, newSize)
 
@@ -51,12 +51,12 @@ print("Génération d'exemple terminée !")
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Création du classifieur
 
-# TODO nb dynamiques
-nb_pos = 1000
+# nb dynamiques
+nb_pos = exemplesPositifs.shape[0]
 nb_neg = factor_neg * nb_pos
 
 # concaténation des exemples
-exemples = np.concatenate((exemplesPositifs, exemplesNegatifs), axis=1)
+exemples = np.concatenate((exemplesPositifs, exemplesNegatifs), axis=0)
 exemples = np.reshape(exemples,(nb_pos + nb_neg, 900))
 
 # vérification
