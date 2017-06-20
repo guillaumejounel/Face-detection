@@ -108,28 +108,12 @@ def recouvrement(x1, y1, w1, h1, x2, y2, w2, h2):
 
 ##############################################################################
 
-# renvoie les coordonnées de la fenetre glissante suivante
-# en fonction de n l'indice de l'image, les coordonnees de la fenetre actuelle
-# le pas horizontal et le pas vertical
-def fenetre_gliss_suiv(img, x, y, w, h, pas_hor, pas_vert, limite_x, limite_y):
-
-    # on commence par le cas "trivial" : on décale la fenetre selon x
-    x_next = x + pas_hor
-    if (x_next + w) <= limite_x:
-        return x_next, y
-
-    # On doit revenir à la ligne
-    x_next = 0
-    y_next = y + pas_vert
-    if y_next + h <= limite_y:
-        return x_next, y_next
-
-    # sinon, on a fini de parcourir l'image, on renvoie une erreur
-    return -1, -1
-
-
 # renvoie l'ensemble des fenêtres glissantes, triées par score
 # renvoie un array de "fenetres" sous la forme score, x, y, w, h
+# si return_pos = 1 (comportement par défaut), la fonction ne renverra que les
+#   carrés où il a été détecté un visage
+# mettre return_pos à 0 pour désactiver ce comportement et obtenir toutes les
+#   carrés analysés
 def fenetre_glissante(clf, img, w, h, pas_hor, pas_vert, return_pos=1):
     img = color.rgb2gray(img)
 
@@ -168,7 +152,7 @@ def fenetre_glissante(clf, img, w, h, pas_hor, pas_vert, return_pos=1):
 
         indice += 1
 
-    # derniere ligne selon x (y = cst
+    # derniere ligne selon x (y = cst)
     for i in range(0, dim_x):
         x_tmp = i * pas_hor
         y_tmp = limite_y - h
