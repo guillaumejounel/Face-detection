@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 from PIL import Image
 import pyfacedetect.image as libimg
 import pyfacedetect.learn as liblearn
+from skimage.transform import rescale
 
 # changer le chemin de IPython
 # avec la commande "%bookmark  NOM_DU_MARQUE_PAGE /path/to/dir"
@@ -53,11 +54,11 @@ print("Génération d'exemple terminée !")
 
 # nb dynamiques
 nb_pos = exemplesPositifs.shape[0]
-nb_neg = factor_neg * nb_pos
+nb_neg = exemplesNegatifs.shape[0]
 
 # concaténation des exemples
 exemples = np.concatenate((exemplesPositifs, exemplesNegatifs), axis=0)
-exemples = np.reshape(exemples,(nb_pos + nb_neg, 900))
+#exemples = np.reshape(exemples,(nb_pos + nb_neg, 900))
 
 # vérification
 # exemples = np.reshape(exemples,(nb_pos + nb_neg, 30,30))
@@ -77,4 +78,8 @@ clf.fit(exemples,y)
 
 print(np.mean(clf.predict(exemples) != y)*100)
 
-print('validation croisée :', liblearn.validationCroisee(exemples, y, 5))
+#print('validation croisée :', liblearn.validationCroisee(exemples, y, 5))
+
+img = np.array(io.imread(pathTrain +"%04d"%(10)+".jpg"))
+data_f = libimg.fenetre_glissante(clf, rescale(img, 0.25, mode='reflect'), 30, 30, 5,5, return_pos=0)
+afficher_fenetre_gliss(rescale(img, 0.25, mode='reflect'), data_f, pathTrain,animated=1)

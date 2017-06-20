@@ -8,7 +8,7 @@ from sklearn import svm
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 from PIL import Image
-
+from skimage.feature import hog
 
 # retourne la taille minimale d'un visage
 def minFace(data) :
@@ -58,16 +58,19 @@ def dataSquare(data):
 
 # filtre gradient
 def filtreLineaire(image):
-    grad = np.gradient(image)
-    return np.sqrt(grad[0]*grad[0]+grad[1]*grad[1])
+    #grad = np.gradient(image)
+    #return np.sqrt(grad[0]*grad[0]+grad[1]*grad[1])
+    return hog(image, 9, [8,8], [3,3], False, True)
 
 # retourne un array avec les images croppées
 def donneesImages(data, pathTrain, newsize):
-    images = np.zeros((2*len(data),newsize,newsize))
+    taille = newsize*newsize
+    images = np.zeros((2*len(data),81))
     for i in range(len(data)):
-        img = filtreLineaire(color.rgb2gray(cropImage(i, data, pathTrain, newsize)))
-        images[2*i] = img
-        images[2*i+1] = np.fliplr(img)
+        img = color.rgb2gray(cropImage(i, data, pathTrain, newsize))
+        
+        images[2*i] = filtreLineaire(img)
+        images[2*i+1] = filtreLineaire(np.fliplr(img))
     return images
 
 # gives an negative example from the n^th image
@@ -141,7 +144,7 @@ def fenetre_glissante(clf, img, w, h, pas_hor, pas_vert, return_pos=1):
     dim_x = int((limite_x - w) / pas_hor) + 1
     dim_y = int((limite_y - h) / pas_vert) + 1
     print(dim_x, dim_y)
-    data = np.zeros(((dim_x + 1) * (dim_y + 1), 5))
+    data = np.zeros(((dim_x + 1) * (dim_y + 1) -1, 5))
 
     # print("nb pas_x", dim_x, "nb pas_y", dim_y)
 
@@ -152,8 +155,8 @@ def fenetre_glissante(clf, img, w, h, pas_hor, pas_vert, return_pos=1):
             x_tmp = i*pas_hor
             y_tmp = j*pas_vert
             img_tmp = img[y_tmp:y_tmp + h, x_tmp:x_tmp + w]
-            img_tmp = np.reshape(img_tmp, (1, h*w))
-
+            img_tmp = filtreLineaire(img_tmp).reshape(1, 81)
+            #img_tmp = np.reshape(img_tmp, (1, h*w))
             data[indice] = [clf.decision_function(img_tmp), x_tmp, y_tmp, w, h]
             indice += 1
 
@@ -162,8 +165,8 @@ def fenetre_glissante(clf, img, w, h, pas_hor, pas_vert, return_pos=1):
         x_tmp = limite_x - w
         y_tmp = i * pas_vert
         img_tmp = img[y_tmp:y_tmp + h, x_tmp:x_tmp + w]
-        img_tmp = np.reshape(img_tmp, (1, h*w))
-
+        #img_tmp = np.reshape(img_tmp, (1, h*w))
+        img_tmp = filtreLineaire(img_tmp).reshape(1, 81)
         data[indice] = [clf.decision_function(img_tmp), x_tmp, y_tmp, w, h]
 
         indice += 1
@@ -173,7 +176,8 @@ def fenetre_glissante(clf, img, w, h, pas_hor, pas_vert, return_pos=1):
         x_tmp = i * pas_hor
         y_tmp = limite_y - h
         img_tmp = img[y_tmp:y_tmp + h, x_tmp:x_tmp + w]
-        img_tmp = np.reshape(img_tmp, (1, h*w))
+        img_tmp = filtreLineaire(img_tmp).reshape(1, 81)
+        #img_tmp = np.reshape(img_tmp, (1, h*w))
 
         data[indice] = [clf.decision_function(img_tmp), x_tmp, y_tmp, w, h]
 
@@ -186,17 +190,26 @@ def fenetre_glissante(clf, img, w, h, pas_hor, pas_vert, return_pos=1):
 
 
 # affiche une image avec le rectangle associé
-def afficher_fenetre_gliss(img, data_fenetre, pathTrain, only_pos=0):
-    # Créer la figure et les axes
-    fig,ax = plt.subplots(1)
-    # Afficher l'image
-    ax.imshow(img)
-    # Créer le rectangle
+def afficher_fenetre_gliss(img, data_fenetre, pathTrain, only_pos=0,animated=0):
+    detections = 0
+    if animated==0:
+        # Créer la figure et les axes
+        fig,ax = plt.subplots(1)
+        # Afficher l'image
+        ax.imshow(img)
+        # Créer le rectangle
     for i in range(1, np.size(data_fenetre, 0) + 1):
+        if animated==1:
+            # Créer la figure et les axes
+            fig,ax = plt.subplots(1)
+            # Afficher l'image
+            ax.imshow(img)
+            # Créer le rectangle
         score, xcorner, ycorner, width, height = data_fenetre[i-1]
-        if (score >= 1) or (only_pos == 0):
-            if score >= 1:
+        if (score >= 0) or (only_pos == 0):
+            if score >= 0:
                 color = 'g'
+                detections+=1
             else:
                 color = 'r'
 
@@ -205,8 +218,12 @@ def afficher_fenetre_gliss(img, data_fenetre, pathTrain, only_pos=0):
                                      facecolor='none')
             # Ajouter le rectangle sur l'image
             ax.add_patch(rect)
-
-    plt.show()
+            if animated==1:
+                plt.show()
+        if animated==1:
+            print("Animation en cours... ",detections,"boîtes détectées !")
+    if animated==0:
+        plt.show()
 
 
 # supprime les boites "non maximales" (facteur de recouvrement)
