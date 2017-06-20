@@ -123,7 +123,7 @@ def fenetre_gliss_suiv(img, x, y, w, h, pas_hor, pas_vert, limite_x, limite_y):
 
 # renvoie l'ensemble des fenêtres glissantes, triées par score
 # renvoie un array de "fenetres" sous la forme score, x, y, w, h
-def fenetre_glissante(clf, img, w, h, pas_hor, pas_vert):
+def fenetre_glissante(clf, img, w, h, pas_hor, pas_vert, return_pos=1):
     img = color.rgb2gray(img)
 
     # on détermine les bordures de l'image
@@ -133,24 +133,36 @@ def fenetre_glissante(clf, img, w, h, pas_hor, pas_vert):
     # calcul du nombre de fenetres glissantes
     dim_x = int((limite_x - w) / pas_hor) + 1
     dim_y = int((limite_y - h) / pas_vert) + 1
-    data = np.zeros((dim_x*(dim_y + 1), 5))
+    data = np.zeros((dim_x + 1) * (dim_y + 1), 5)
 
-    print("nb pas_x", dim_x, "nb pas_y", dim_y)
+    # print("nb pas_x", dim_x, "nb pas_y", dim_y)
 
     indice = 0
+    # on parcourt l'ensemble de l'image selon x, y
     for i in range(0, dim_x):
         for j in range(0, dim_y):
             x_tmp = i*pas_hor
             y_tmp = j*pas_vert
-
             img_tmp = img[y_tmp:y_tmp + h, x_tmp:x_tmp + w]
             img_tmp = np.reshape(img_tmp, (1, h*w))
 
             data[indice] = [clf.decision_function(img_tmp), x_tmp, y_tmp, w, h]
             indice += 1
 
+    # derniere ligne selon y (x = cst)
+    for i in range(0, dim_y):
+        x_tmp = limite_x - w
+        y_tmp = i * pas_vert
+        img_tmp = img[y_tmp:y_tmp + h, x_tmp:x_tmp + w]
+        img_tmp = np.reshape(img_tmp, (1, h*w))
+
+        data[indice] = [clf.decision_function(img_tmp), x_tmp, y_tmp, w, h]
+
+        indice += 1
+
+    # derniere ligne selon x (y = cst
     for i in range(0, dim_x):
-        x_tmp = i*pas_hor
+        x_tmp = i * pas_hor
         y_tmp = limite_y - h
         img_tmp = img[y_tmp:y_tmp + h, x_tmp:x_tmp + w]
         img_tmp = np.reshape(img_tmp, (1, h*w))
@@ -159,11 +171,14 @@ def fenetre_glissante(clf, img, w, h, pas_hor, pas_vert):
 
         indice += 1
 
-    return data
+    if return_pos == 1:
+        return data[data[:, 0] >= 1]
+    else:
+        return data
 
 
 # affiche une image avec le rectangle associé
-def afficher_fenetre_gliss(img, data_fenetre, pathTrain):
+def afficher_fenetre_gliss(img, data_fenetre, pathTrain, only_pos=0):
     # Créer la figure et les axes
     fig,ax = plt.subplots(1)
     # Afficher l'image
@@ -171,16 +186,16 @@ def afficher_fenetre_gliss(img, data_fenetre, pathTrain):
     # Créer le rectangle
     for i in range(1, np.size(data_fenetre, 0) + 1):
         score, xcorner, ycorner, width, height = data_fenetre[i-1]
+        if (score >= 1) or (only_pos == 0):
+            if score >= 1:
+                color = 'g'
+            else:
+                color = 'r'
 
-        if score >= 1:
-            color = 'g'
-        else:
-            color = 'r'
-
-        rect = patches.Rectangle((xcorner, ycorner), width,
-                                 height, linewidth=2, edgecolor=color,
-                                 facecolor='none')
-        # Ajouter le rectangle sur l'image
-        ax.add_patch(rect)
+            rect = patches.Rectangle((xcorner, ycorner), width,
+                                     height, linewidth=2, edgecolor=color,
+                                     facecolor='none')
+            # Ajouter le rectangle sur l'image
+            ax.add_patch(rect)
 
     plt.show()
