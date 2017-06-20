@@ -6,7 +6,7 @@ Created on Mon Jun 19 12:10:00 2017
 @author: marie
 """
 
-# à lancer après ./projetcomplet.py
+# à lancer après ./projetComplet.py
 
 import pyfacedetect.image as libimg
 
