@@ -253,7 +253,7 @@ def suppressionNonMaximas(data, facteur=0.2):
     return data[data[:,0] != 0]
 
 
-def fenetre_glissante_multiechelle(img):
+def fenetre_glissante_multiechelle(clf, img):
     data = np.zeros((1000, 5)) # Max 100 fenêtres
     cursor = 0
     for ratio in np.arange(30/min(img.shape), 0.6, 0.1):
@@ -265,14 +265,14 @@ def fenetre_glissante_multiechelle(img):
     return suppressionNonMaximas(data)
 
 
-def fauxPositifs(pathTrain, data):
+def fauxPositifs(clf, pathTrain, data):
     fpos = np.zeros((10000, 5))
     cursor = 0
     for i in range(len(data)):
         xi, yi, wi, hi = map(int, data[i][1:])
         print("Calcul faux positifs :",i//10,"% (", len(fpos[fpos[:,0]!=0]),")")
         img = np.array(io.imread(pathTrain +"%04d"%(i+1)+".jpg", as_grey=True))
-        data_f = fenetre_glissante_multiechelle(img)
+        data_f = fenetre_glissante_multiechelle(clf, img)
         for j in range(len(data_f)):
             xj, yj, wj, hj = map(int, data_f[j][1:])
             if recouvrement(xj, yj, wj, hj, xi, yi, wi, hi) < 0.3:

@@ -86,8 +86,7 @@ print(np.mean(clf.predict(exemples) != y)*100)
 
 #print('validation croisée :', liblearn.validationCroisee(exemples, y, 5))
 
-
-fp = libimg.fauxPositifs(pathTrain, data)
+fp = libimg.fauxPositifs(clf, pathTrain, data)
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
