@@ -144,12 +144,12 @@ for i in np.arange(6.5,7.5,0.1):
     cursor+=1
 
 plt.plot(choixC[0:cursor,],choixC[0:cursor,1],'.-')
-    
+# C=7.1 pas mal !
 
-img = np.array(io.imread(pathTest +"%04d"%(153)+".jpg", as_grey=True))
-data_f = fenetre_glissante_multiechelle(clf, img)
-afficher_fenetre_gliss(img, data_f, pathTest, 0, only_pos=0,animated=0)
-    
+img = np.array(io.imread(pathTest +"%04d"%(131)+".jpg", as_grey=True))
+data_f = libimg.fenetre_glissante_multiechelle(clf, img)
+libimg.afficher_fenetre_gliss(img, data_f, pathTest, 1, only_pos=0,animated=0)
+   
 dataCalc = calculResultats(clf, pathTest, 447)
 
 

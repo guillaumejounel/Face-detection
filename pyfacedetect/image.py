@@ -8,6 +8,7 @@ import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 from skimage.feature import hog
 from skimage import feature
+from skimage.transform import rescale
 
 taille_descripteur = 72
 seuil_validation = 0
@@ -143,7 +144,7 @@ def recouvrement(x1, y1, w1, h1, x2, y2, w2, h2):
 #   carrés où il a été détecté un visage
 # mettre return_pos à 0 pour désactiver ce comportement et obtenir toutes les
 #   carrés analysés
-def fenetre_glissante(clf, img, w, h, pas_hor, pas_vert, return_pos=1):
+def fenetre_glissante(clf, img, ratio, w, h, pas_hor, pas_vert, return_pos=1):
     img = color.rgb2gray(img)
 
     # on détermine les bordures de l'image
@@ -216,7 +217,7 @@ def afficher_fenetre_gliss(img, data_fenetre, pathTrain, scoremin, only_pos=0,an
             # Créer le rectangle
         score, xcorner, ycorner, width, height = data_fenetre[i-1]
         if (score >= scoremin) or (only_pos == 0):
-            if score >= 0:
+            if score >= scoremin:
                 color = 'g'
                 detections+=1
             else:
