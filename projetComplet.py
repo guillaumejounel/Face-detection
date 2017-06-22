@@ -74,7 +74,7 @@ exemples = np.concatenate((exemplesPositifs, exemplesNegatifs), axis=0)
 y = np.concatenate((np.ones(nb_pos), np.zeros(nb_neg)))
 
 print("Création du classifieur")
-clf = AdaBoostClassifier()
+clf = svm.SVC()
 clf.fit(exemples,y)
 
 # test du classifieur
@@ -84,9 +84,39 @@ print(np.mean(clf.predict(exemples) != y)*100)
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-#print('validation croisée :', liblearn.validationCroisee(exemples, y, 5))
 
-fp = libimg.fauxPositifs(clf, pathTrain, data)
+
+dataFp = fauxPositifs(clf, pathTrain, data)
+exFp = libimg.donneesImages(dataFp, pathTrain, newSize)
+exemplesNegatifs = np.concatenate((exemplesNegatifs, exFp), axis=0)
+
+nb_pos = exemplesPositifs.shape[0]
+nb_neg = exemplesNegatifs.shape[0]
+
+y = np.concatenate((np.ones(nb_pos), np.zeros(nb_neg)))
+# concaténation des exemples
+exemples = np.concatenate((exemplesPositifs, exemplesNegatifs), axis=0)
+
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+print("Création du nouveau classifieur")
+clf = AdaBoostClassifier()
+clf.fit(exemples,y)
+
+#Problème : le meilleur score c'est quand on ne détecte rien...
+# (il faut utiliser les "courbes" rappel/précision vues en cours)
+
+#print('validation croisée :', validationCroisee(clf, exemples, y, 5))
+# AdaBoostClassifier() -> 4.74
+# AdaBoostClassifier(n_estimators=100) -> 4.40
+# AdaBoostClassifier(n_estimators=100, learning_rate=1.5) -> 5.11
+# AdaBoostClassifier(n_estimators=100, learning_rate=0.5) -> 4.17
+# AdaBoostClassifier(n_estimators=100, learning_rate=0.3) -> 4.74
+
+
+
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+dataCalc = calculResultats(clf, pathTrain, data)
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

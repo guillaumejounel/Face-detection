@@ -279,4 +279,16 @@ def fauxPositifs(clf, pathTrain, data):
                 fpos[cursor] = data_f[j]
                 fpos[cursor, 0] = i+1
                 cursor += 1
-    return fpos
+    return fpos[fpos[:,0]!=0]
+
+def calculResultats(clf, path, data):
+    data_res = np.zeros((10000, 5))
+    cursor = 0
+    for i in range(len(data)):
+        print("Calcul des résultats :",i//10,"%")
+        img = np.array(io.imread(path +"%04d"%(i+1)+".jpg", as_grey=True))
+        data_f = fenetre_glissante_multiechelle(clf, img)
+        for j in range(len(data_f)):
+            data_res[j+cursor] = data_f[j]
+            cursor += 1
+    return data_res[data_res[:,0]!=0]

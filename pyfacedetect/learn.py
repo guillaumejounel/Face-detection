@@ -3,8 +3,7 @@ import numpy as np
 
 
 # validation croisée
-def validationCroisee(X, Y, N):
-    clf = svm.SVC(kernel='linear')
+def validationCroisee(clf, X, Y, N):
 
     r = np.zeros(N)
 
