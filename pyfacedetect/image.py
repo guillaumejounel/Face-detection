@@ -307,11 +307,10 @@ def fauxPositifs(clf, pathTrain, data):
 
 
 # calcul des résultas sur les "vraies" données, selon le formatage donné
-def calculResultats(clf, path, data):
-    data_res = np.zeros((10000, 5)) # initialisation de l'array des résultats
+def calculResultats(clf, path, nb):
+    data_res = np.zeros((10000, 6)) # initialisation de l'array des résultats
     cursor = 0 # indice où sera inséré le prochain résultat
-
-    for i in range(len(data)):
+    for i in range(nb):
         print("Calcul des résultats :",i//10,"%")
         # lecture et détection des visages dans l'ième image
         img = np.array(io.imread(path +"%04d"%(i+1)+".jpg", as_grey=True))
@@ -322,6 +321,5 @@ def calculResultats(clf, path, data):
             data_res[j+cursor, 1:5] = data_f[j, 1:]
             data_res[j+cursor, 5] = data_f[j, 0]
             cursor += 1
-
     # renvoie les résultats non nuls
     return data_res[data_res[:,0]!=0]

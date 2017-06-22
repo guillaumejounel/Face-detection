@@ -78,12 +78,24 @@ print("Création du classifieur et entrainement initial")
 clf = svm.SVC(kernel='linear', C=7.1)
 clf.fit(exemples,y)
 
+print('validation croisée :', liblearn.validationCroisee(clf, exemples, y, 5))
+
+# AdaBoostClassifier() -> 4.74
+# AdaBoostClassifier(n_estimators=100) -> 4.40
+# AdaBoostClassifier(n_estimators=100, learning_rate=1.5) -> 5.11
+# AdaBoostClassifier(n_estimators=100, learning_rate=0.5) -> 4.17
+# AdaBoostClassifier(n_estimators=100, learning_rate=0.3) -> 4.74
+
+# svm.SVC(kernel='linear') -> 4.34
+# svm.SVC(kernel='linear', C=5) -> 4.32
+# svm.SVC(kernel='linear', C=7.1) -> 3.30
+
 # test du classifieur
 
 print(np.mean(clf.predict(exemples) != y)*100)
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-# entrainement sur les faux positifs (très long !)
+# entrainement sur les faux positifs (env 15mn)
 
 dataFp = libimg.fauxPositifs(clf, pathTrain, data)
 exFp = libimg.donneesImages(dataFp, pathTrain, newSize)
@@ -103,20 +115,10 @@ print("Création du nouveau classifieur")
 clf = svm.SVC(kernel='linear', C=7.1)
 clf.fit(exemples,y)
 
-#Problème : le meilleur score c'est quand on ne détecte rien...
-# (il faut utiliser les "courbes" rappel/précision vues en cours)
 
 print('validation croisée :', liblearn.validationCroisee(clf, exemples, y, 5))
 
-# AdaBoostClassifier() -> 4.74
-# AdaBoostClassifier(n_estimators=100) -> 4.40
-# AdaBoostClassifier(n_estimators=100, learning_rate=1.5) -> 5.11
-# AdaBoostClassifier(n_estimators=100, learning_rate=0.5) -> 4.17
-# AdaBoostClassifier(n_estimators=100, learning_rate=0.3) -> 4.74
-
-# svm.SVC(kernel='linear') -> 4.34
-# svm.SVC(kernel='linear', C=5) -> 4.32
-# svm.SVC(kernel='linear', C=7.1) -> 3.30
+# svm.SVC(kernel='linear', C=7.1) -> 5.79
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -137,7 +139,7 @@ print('validation croisée :', liblearn.validationCroisee(clf, exemples, y, 5))
 
 choixC = np.zeros((15, 2))
 cursor = 0
-for i in np.arange(6.5,7.5,0.1):
+for i in np.arange(1,15,1):
     print(round(100*(i-6.5)/(7.5-6.5)),"¨%")
     clf = svm.SVC(kernel='linear', C=i)
     clf.fit(exemples,y)
@@ -151,7 +153,7 @@ img = np.array(io.imread(pathTest +"%04d"%(131)+".jpg", as_grey=True))
 data_f = libimg.fenetre_glissante_multiechelle(clf, img)
 libimg.afficher_fenetre_gliss(img, data_f, pathTest, 1, only_pos=0,animated=0)
    
-dataCalc = calculResultats(clf, pathTest, 447)
+dataCalc = libimg.calculResultats(clf, pathTest, 447)
 
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
