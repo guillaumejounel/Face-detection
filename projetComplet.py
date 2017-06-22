@@ -24,6 +24,7 @@ from skimage.transform import rescale
 # puis lancer la commande "%cd -b PROJET" en début de session.
 
 import warnings
+
 warnings.filterwarnings('ignore')
 
 pathTrain = "projetface/train/"
@@ -64,17 +65,16 @@ nb_neg = exemplesNegatifs.shape[0]
 exemples = np.concatenate((exemplesPositifs, exemplesNegatifs), axis=0)
 #exemples = np.reshape(exemples,(nb_pos + nb_neg, 900))
 
-# vérification
+# vérification si l'on veut afficher les images de l'array exemples
 # exemples = np.reshape(exemples,(nb_pos + nb_neg, 30,30))
 # plt.figure(1)
 # plt.imshow(exemples[14])
 # plt.show()
 
-# TODO 1 ou -1 !
-y = np.concatenate((np.ones(nb_pos), np.zeros(nb_neg)))
+y = np.concatenate((np.ones(nb_pos), -np.ones(nb_neg)))
 
-print("Création du classifieur")
-clf = svm.SVC()
+print("Création du classifieur et entrainement initial")
+clf = AdaBoostClassifier()
 clf.fit(exemples,y)
 
 # test du classifieur
@@ -82,11 +82,9 @@ clf.fit(exemples,y)
 print(np.mean(clf.predict(exemples) != y)*100)
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# entrainement sur les faux positifs
 
-
-
-
-dataFp = fauxPositifs(clf, pathTrain, data)
+dataFp = libimg.fauxPositifs(clf, pathTrain, data)
 exFp = libimg.donneesImages(dataFp, pathTrain, newSize)
 exemplesNegatifs = np.concatenate((exemplesNegatifs, exFp), axis=0)
 
@@ -98,6 +96,7 @@ y = np.concatenate((np.ones(nb_pos), np.zeros(nb_neg)))
 exemples = np.concatenate((exemplesPositifs, exemplesNegatifs), axis=0)
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 print("Création du nouveau classifieur")
 clf = AdaBoostClassifier()
 #clf = svm.SVC(kernel='linear', C=1000)
@@ -184,5 +183,3 @@ np.savetxt("ok.txt", dataCalc, fmt="%03i %i %i %i %i %0.2f")
 
 # Score des boîtes entre 0 et +\infty (distance à la frontière).
 
-
-        
