@@ -134,10 +134,16 @@ clf.fit(exemples,y)
 # points (including the possible errors of your dataset). In addition a large
 # C, usually increases the time needed for training. 
 
-np.array()
-for i in range(16):
+choixC = np.zeros((15, 2))
+cursor = 0
+for i in np.arange(6.5,7.5,0.1):
+    print(round(100*(i-6.5)/(7.5-6.5)),"¨%")
     clf = svm.SVC(kernel='linear', C=i)
     clf.fit(exemples,y)
+    choixC[cursor] = [i, liblearn.validationCroisee(clf, exemples, y, 5)]
+    cursor+=1
+
+plt.plot(choixC[0:cursor,],choixC[0:cursor,1],'.-')
     
 
 img = np.array(io.imread(pathTest +"%04d"%(153)+".jpg", as_grey=True))
