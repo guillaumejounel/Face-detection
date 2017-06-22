@@ -82,9 +82,12 @@ def MBLBPdescriptor(img, pas=0.05, animated=0):
             i+=1
     return desc
 
-# retourne un array avec les images croppées
+# retourne un array avec les descripteurs correspondant à chaque image
+# images = [ [image1            desc[0] desc[1] ... desc[taille_descripteur]
+#            [symétrique_image1 desc[0] desc[1] ... desc[taille_descripteur]
+#            [image 2 ....]]
 def donneesImages(data, pathTrain, newsize):
-    taille = newsize*newsize
+    # taille = newsize*newsize
     images = np.zeros((2*len(data),taille_descripteur))
     for i in range(len(data)):
         img = color.rgb2gray(cropImage(i, data, pathTrain, newsize))
@@ -92,15 +95,18 @@ def donneesImages(data, pathTrain, newsize):
         images[2*i+1] = filtreLineaire(np.fliplr(img)).reshape(taille_descripteur,)
     return images
 
+
 # gives an negative example from the n^th image
 def negatifRandom(data,pathTrain,newsize,n):
+    # Récupération de l'image et de ses caractéristiques
+    img = np.array(io.imread(pathTrain + "%04d" % (n) + ".jpg"),
+                   dtype=np.uint8)
+    # Récupération de ses caractéristiques
+    x1, y1, w1, h1 = map(int, data[n-1][1:])
+    h, w = img.shape[:2]
+    # on choisit des images aléatoires dans l'image jusqu'à ce que l'on en
+    # trouve une qui ne soit pas le visage (recouvrement < 0.3)
     while True:
-        # Récupération de l'image
-        img = np.array(io.imread(pathTrain + "%04d" % (n) + ".jpg"),
-                       dtype=np.uint8)
-        # Récupération de ses caractéristiques
-        x1, y1, w1, h1 = map(int, data[n-1][1:])
-        h, w = img.shape[:2]
         # Choix aléatoire d'une taille de fenêtre
         taille = int(np.random.uniform(low=newsize, high=min(w,h)))
         # Choix aléatoire de la position de la fenêtre
@@ -109,6 +115,7 @@ def negatifRandom(data,pathTrain,newsize,n):
         # Test du score de recouvrement de la fenêtre
         if recouvrement(x1,y1,w1,h1,x,y,taille,taille) < 0.3:
             return n, x, y, taille, taille
+
 
 # renvoie pour chaque image n exemples négatifs
 def exemplesNegatifs(n, data, pathTrain, newsize):
@@ -252,16 +259,19 @@ def suppressionNonMaximas(data, facteur=0.2):
         # On saute les boîtes qui ont été éliminées
         #while i < len(data) and data[i][0] == 0:
         #    i+=1
-    # Retourne les boites qui n'ont pas été éliminées
+    # Retourne les boites qui n'ont pas été éliminées (score != 0)
     return data[data[:,0] != 0]
 
-
+# lance la fenêtre glissante sur différentes échelles, retourne les meilleures
+# fenêtres détectées, après nettoyage des doublons par suppressionNonMaximas()
 def fenetre_glissante_multiechelle(clf, img):
     data = np.zeros((1000, 5)) # Max 100 fenêtres
     cursor = 0
+
     for ratio in np.arange(30/min(img.shape), 0.6, 0.1):
-        #print("Fenêtre glissante",round(ratio*100),"%")
-        data_f = fenetre_glissante(clf, rescale(img, ratio, mode='reflect'), ratio, 30, 30, 10,10, return_pos=1)
+        # print("Fenêtre glissante",round(ratio*100),"%")
+        data_f = fenetre_glissante(clf, rescale(img, ratio, mode='reflect'),
+                                   ratio, 30, 30, 10,10, return_pos=1)
         for i in range(len(data_f)):
             data[i+cursor] = data_f[i]
         cursor += len(data_f)
@@ -269,29 +279,46 @@ def fenetre_glissante_multiechelle(clf, img):
 
 
 def fauxPositifs(clf, pathTrain, data):
-    fpos = np.zeros((10000, 5))
-    cursor = 0
+    fpos = np.zeros((10000, 5)) # initalisation de l'array des faux positifs
+    cursor = 0 # indice où sera inséré le prochain faux positif détecté
+
     for i in range(len(data)):
+        # récupération des coordonnes du visage correspondant à l'image i
         xi, yi, wi, hi = map(int, data[i][1:])
+        # affichage de l'avancement i//10% (nombre d'images traitées)
         print("Calcul faux positifs :",i//10,"% (", len(fpos[fpos[:,0]!=0]),")")
+
+        # détection de visage dans la ième image
         img = np.array(io.imread(pathTrain +"%04d"%(i+1)+".jpg", as_grey=True))
         data_f = fenetre_glissante_multiechelle(clf, img)
+        # pour chacun des visages détectés dans la ième image on vérifier le
+        # recouvrement avec le visage attendu
         for j in range(len(data_f)):
             xj, yj, wj, hj = map(int, data_f[j][1:])
+            # il n'y a pas de recouvrement : le visage détecté est un faux
+            # il est donc rajouté à fpos
             if recouvrement(xj, yj, wj, hj, xi, yi, wi, hi) < 0.3:
                 fpos[cursor] = data_f[j]
                 fpos[cursor, 0] = i+1
                 cursor += 1
+
     return fpos[fpos[:,0]!=0]
 
+
+# calcul des résultas sur les "vraies" données, selon le formatage donné
 def calculResultats(clf, path, data):
-    data_res = np.zeros((10000, 5))
-    cursor = 0
+    data_res = np.zeros((10000, 5)) # initialisation de l'array des résultats
+    cursor = 0 # indice où sera inséré le prochain résultat
+
     for i in range(len(data)):
         print("Calcul des résultats :",i//10,"%")
+        # lecture et détection des visages dans l'ième image
         img = np.array(io.imread(path +"%04d"%(i+1)+".jpg", as_grey=True))
         data_f = fenetre_glissante_multiechelle(clf, img)
+        # écriture des résultats dans l'array de résultats
         for j in range(len(data_f)):
             data_res[j+cursor] = data_f[j]
             cursor += 1
+
+    # renvoie les résultats non nuls
     return data_res[data_res[:,0]!=0]

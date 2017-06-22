@@ -64,16 +64,15 @@ nb_neg = exemplesNegatifs.shape[0]
 exemples = np.concatenate((exemplesPositifs, exemplesNegatifs), axis=0)
 #exemples = np.reshape(exemples,(nb_pos + nb_neg, 900))
 
-# vérification
+# vérification si l'on veut afficher les images de l'array exemples
 # exemples = np.reshape(exemples,(nb_pos + nb_neg, 30,30))
 # plt.figure(1)
 # plt.imshow(exemples[14])
 # plt.show()
 
-# TODO 1 ou -1 !
-y = np.concatenate((np.ones(nb_pos), np.zeros(nb_neg)))
+y = np.concatenate((np.ones(nb_pos), -np.ones(nb_neg)))
 
-print("Création du classifieur")
+print("Création du classifieur et entrainement initial")
 clf = svm.SVC()
 clf.fit(exemples,y)
 
@@ -82,11 +81,9 @@ clf.fit(exemples,y)
 print(np.mean(clf.predict(exemples) != y)*100)
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# entrainement sur les faux positifs
 
-
-
-
-dataFp = fauxPositifs(clf, pathTrain, data)
+dataFp = libimg.fauxPositifs(clf, pathTrain, data)
 exFp = libimg.donneesImages(dataFp, pathTrain, newSize)
 exemplesNegatifs = np.concatenate((exemplesNegatifs, exFp), axis=0)
 
@@ -98,6 +95,7 @@ y = np.concatenate((np.ones(nb_pos), np.zeros(nb_neg)))
 exemples = np.concatenate((exemplesPositifs, exemplesNegatifs), axis=0)
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 print("Création du nouveau classifieur")
 clf = AdaBoostClassifier()
 clf.fit(exemples,y)
@@ -112,12 +110,8 @@ clf.fit(exemples,y)
 # AdaBoostClassifier(n_estimators=100, learning_rate=0.5) -> 4.17
 # AdaBoostClassifier(n_estimators=100, learning_rate=0.3) -> 4.74
 
-
-
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 dataCalc = calculResultats(clf, pathTrain, data)
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-        
