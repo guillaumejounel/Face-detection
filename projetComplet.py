@@ -24,6 +24,7 @@ from skimage.transform import rescale
 # puis lancer la commande "%cd -b PROJET" en début de session.
 
 import warnings
+
 warnings.filterwarnings('ignore')
 
 pathTrain = "projetface/train/"
@@ -73,7 +74,7 @@ exemples = np.concatenate((exemplesPositifs, exemplesNegatifs), axis=0)
 y = np.concatenate((np.ones(nb_pos), -np.ones(nb_neg)))
 
 print("Création du classifieur et entrainement initial")
-clf = svm.SVC()
+clf = AdaBoostClassifier()
 clf.fit(exemples,y)
 
 # test du classifieur
