@@ -11,7 +11,7 @@ from skimage import feature
 from skimage.transform import rescale
 
 taille_descripteur = 72
-seuil_validation = 0
+seuil_validation = 1
 
 # retourne la taille minimale d'un visage
 def minFace(data) :
