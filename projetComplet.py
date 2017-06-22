@@ -7,8 +7,9 @@ from skimage import io
 from skimage import util
 from skimage.transform import resize
 from skimage import color
-# from skimage import feature
+from skimage import feature
 from sklearn import svm
+from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 from PIL import Image
@@ -21,6 +22,9 @@ from skimage.transform import rescale
 # %bookmark PROJET /Users/guillaume/Cloud/WORK/UTC/GI02/SY32/TDXu/Projet/
 # (à ne faire qu'une fois, normalement c'est persistant)
 # puis lancer la commande "%cd -b PROJET" en début de session.
+
+import warnings
+warnings.filterwarnings('ignore')
 
 pathTrain = "projetface/train/"
 pathTest = "projetface/test/"
@@ -70,16 +74,50 @@ exemples = np.concatenate((exemplesPositifs, exemplesNegatifs), axis=0)
 y = np.concatenate((np.ones(nb_pos), np.zeros(nb_neg)))
 
 print("Création du classifieur")
-clf = svm.SVC(kernel='linear')
+clf = svm.SVC()
 clf.fit(exemples,y)
 
-# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # test du classifieur
 
 print(np.mean(clf.predict(exemples) != y)*100)
 
-#print('validation croisée :', liblearn.validationCroisee(exemples, y, 5))
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-img = np.array(io.imread(pathTrain +"%04d"%(10)+".jpg"))
-data_f = libimg.fenetre_glissante(clf, rescale(img, 0.25, mode='reflect'), 30, 30, 5,5, return_pos=0)
-afficher_fenetre_gliss(rescale(img, 0.25, mode='reflect'), data_f, pathTrain,animated=1)
+
+
+
+dataFp = fauxPositifs(clf, pathTrain, data)
+exFp = libimg.donneesImages(dataFp, pathTrain, newSize)
+exemplesNegatifs = np.concatenate((exemplesNegatifs, exFp), axis=0)
+
+nb_pos = exemplesPositifs.shape[0]
+nb_neg = exemplesNegatifs.shape[0]
+
+y = np.concatenate((np.ones(nb_pos), np.zeros(nb_neg)))
+# concaténation des exemples
+exemples = np.concatenate((exemplesPositifs, exemplesNegatifs), axis=0)
+
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+print("Création du nouveau classifieur")
+clf = AdaBoostClassifier()
+clf.fit(exemples,y)
+
+#Problème : le meilleur score c'est quand on ne détecte rien...
+# (il faut utiliser les "courbes" rappel/précision vues en cours)
+
+#print('validation croisée :', validationCroisee(clf, exemples, y, 5))
+# AdaBoostClassifier() -> 4.74
+# AdaBoostClassifier(n_estimators=100) -> 4.40
+# AdaBoostClassifier(n_estimators=100, learning_rate=1.5) -> 5.11
+# AdaBoostClassifier(n_estimators=100, learning_rate=0.5) -> 4.17
+# AdaBoostClassifier(n_estimators=100, learning_rate=0.3) -> 4.74
+
+
+
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+dataCalc = calculResultats(clf, pathTrain, data)
+
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+        
