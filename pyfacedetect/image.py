@@ -26,7 +26,7 @@ def afficherImgRect(n, data, pathTrain):
     # Afficher l'image
     ax.imshow(img)
     # Créer le rectangle
-    xcorner, ycorner, width, height = data[n-1][1:]
+    xcorner, ycorner, width, height = data[n-1][1:5]
     rect = patches.Rectangle((xcorner, ycorner), width, height,
                              linewidth=2,edgecolor='r', facecolor='none')
     # Ajouter le rectangle sur l'image
@@ -281,14 +281,16 @@ def fauxPositifs(clf, pathTrain, data):
                 cursor += 1
     return fpos[fpos[:,0]!=0]
 
-def calculResultats(clf, path, data):
-    data_res = np.zeros((10000, 5))
+def calculResultats(clf, path, nb):
+    data_res = np.zeros((10000, 6))
     cursor = 0
-    for i in range(len(data)):
-        print("Calcul des résultats :",i//10,"%")
+    for i in range(nb):
+        print("Calcul des résultats :",round(100*i/nb),"%")
         img = np.array(io.imread(path +"%04d"%(i+1)+".jpg", as_grey=True))
         data_f = fenetre_glissante_multiechelle(clf, img)
         for j in range(len(data_f)):
-            data_res[j+cursor] = data_f[j]
+            data_res[j+cursor, 0] = i+1
+            data_res[j+cursor, 1:5] = data_f[j, 1:]
+            data_res[j+cursor, 5] = data_f[j, 0]
             cursor += 1
     return data_res[data_res[:,0]!=0]
