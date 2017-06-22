@@ -78,7 +78,11 @@ print("Création du classifieur et entrainement initial")
 clf = svm.SVC(kernel='linear', C=7.1)
 clf.fit(exemples,y)
 
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Optimisation du classifieur
+
 print('validation croisée :', liblearn.validationCroisee(clf, exemples, y, 5))
+
 
 # AdaBoostClassifier() -> 4.74
 # AdaBoostClassifier(n_estimators=100) -> 4.40
@@ -90,9 +94,35 @@ print('validation croisée :', liblearn.validationCroisee(clf, exemples, y, 5))
 # svm.SVC(kernel='linear', C=5) -> 4.32
 # svm.SVC(kernel='linear', C=7.1) -> 3.30
 
-# test du classifieur
 
-print(np.mean(clf.predict(exemples) != y)*100)
+choixC = np.zeros((15, 2))
+cursor = 0
+for i in np.arange(1,15,1):
+    print(round(100*(i-6.5)/(7.5-6.5)),"¨%")
+    clf = svm.SVC(kernel='linear', C=i)
+    clf.fit(exemples,y)
+    choixC[cursor] = [i, liblearn.validationCroisee(clf, exemples, y, 5)]
+    cursor+=1
+
+plt.plot(choixC[0:cursor,],choixC[0:cursor,1],'.-')
+# C=7.1 pas mal !
+
+
+#The usual way to adjust the C parameter is by a grid search. Set a range of
+# feasible values for C, for instance C in [0,15]. Then make a coarse search
+# in laps of 1: 1,2,3,4,...,15. Look for the average error using a 5 or 10
+# fold cross validation using the training set and keep the best value.
+# Then perform the same procedure but on a finer search. For instance, say
+# the best value (less error) was for C=5. Now look on laps of 0.1 in the
+# range [4.1,5.9].
+
+#C is a trade-off between training error and the flatness of the solution.
+# The larger C is the less the final training error will be. But if you
+# increase C too much you risk losing the generalization properties of the
+# classifier, because it will try to fit as best as possible all the training
+# points (including the possible errors of your dataset). In addition a large
+# C, usually increases the time needed for training. 
+
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # entrainement sur les faux positifs (env 15mn)
@@ -120,47 +150,25 @@ print('validation croisée :', liblearn.validationCroisee(clf, exemples, y, 5))
 
 # svm.SVC(kernel='linear', C=7.1) -> 5.79
 
+# TODO? Ré-optimisation de C ? 
+
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-#The usual way to adjust the C parameter is by a grid search. Set a range of
-# feasible values for C, for instance C in [0,15]. Then make a coarse search
-# in laps of 1: 1,2,3,4,...,15. Look for the average error using a 5 or 10
-# fold cross validation using the training set and keep the best value.
-# Then perform the same procedure but on a finer search. For instance, say
-# the best value (less error) was for C=5. Now look on laps of 0.1 in the
-# range [4.1,5.9].
-
-#C is a trade-off between training error and the flatness of the solution.
-# The larger C is the less the final training error will be. But if you
-# increase C too much you risk losing the generalization properties of the
-# classifier, because it will try to fit as best as possible all the training
-# points (including the possible errors of your dataset). In addition a large
-# C, usually increases the time needed for training. 
-
-choixC = np.zeros((15, 2))
-cursor = 0
-for i in np.arange(1,15,1):
-    print(round(100*(i-6.5)/(7.5-6.5)),"¨%")
-    clf = svm.SVC(kernel='linear', C=i)
-    clf.fit(exemples,y)
-    choixC[cursor] = [i, liblearn.validationCroisee(clf, exemples, y, 5)]
-    cursor+=1
-
-plt.plot(choixC[0:cursor,],choixC[0:cursor,1],'.-')
-# C=7.1 pas mal !
-
-img = np.array(io.imread(pathTest +"%04d"%(131)+".jpg", as_grey=True))
+img = np.array(io.imread(pathTest +"%04d"%(163)+".jpg", as_grey=True))
 data_f = libimg.fenetre_glissante_multiechelle(clf, img)
-libimg.afficher_fenetre_gliss(img, data_f, pathTest, 1, only_pos=0,animated=0)
+libimg.afficher_fenetre_gliss(img, data_f, pathTest, 0, only_pos=0,animated=0)
+
    
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Calcul des résultats pour les images de test
+
 dataCalc = libimg.calculResultats(clf, pathTest, 447)
 
 
-# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Voir quelques résultats
 
-
-#Voir les rectangles obtenus pour l'image n°nbim
-nbim = 45
+nbim = 413
 img = np.array(io.imread(pathTest +"%04d"%(nbim)+".jpg"), dtype=np.uint8)
 fig,ax = plt.subplots(1)
 ax.imshow(img)
@@ -171,8 +179,9 @@ for rectangle in dataCalc[dataCalc[:,0]==nbim]:
     ax.add_patch(rect)
 plt.show()
 
-#Sauvegarde des résultats
-np.savetxt("ok.txt", dataCalc, fmt="%03i %i %i %i %i %0.2f")
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Sauvegarde des résultats
+np.savetxt("result.txt", dataCalc, fmt="%03i %i %i %i %i %0.2f")
 #exemple : 001 20 32 64 128 0.23
 
 #AdaBoostClassifier() : 2017-06-22 13:01:41	jounel	28.96	23.71	26.08	10.17
