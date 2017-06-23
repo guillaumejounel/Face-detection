@@ -95,16 +95,7 @@ print('validation croisée :', liblearn.validationCroisee(clf, exemples, y, 5))
 # svm.SVC(kernel='linear', C=7.1) -> 3.30
 
 
-choixC = np.zeros((15, 2))
-cursor = 0
-for i in np.arange(1,15,1):
-    print(round(100*(i-6.5)/(7.5-6.5)),"¨%")
-    clf = svm.SVC(kernel='linear', C=i)
-    clf.fit(exemples,y)
-    choixC[cursor] = [i, liblearn.validationCroisee(clf, exemples, y, 5)]
-    cursor+=1
-
-plt.plot(choixC[0:cursor,],choixC[0:cursor,1],'.-')
+#liblearn.graphValidationCroisee(clf, exemples, 6.5, 7.5, 0.1)
 # C=7.1 pas mal !
 
 
@@ -145,6 +136,8 @@ print("Création du nouveau classifieur")
 clf = svm.SVC(kernel='linear', C=7.1)
 clf.fit(exemples,y)
 
+#Recherche du meilleur C : graphe
+#liblearn.graphValidationCroisee(clf, exemples, 8.5, 9.5, 0.1)
 
 print('validation croisée :', liblearn.validationCroisee(clf, exemples, y, 5))
 
