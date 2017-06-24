@@ -56,16 +56,19 @@ print("Taille du descripteur :", tailleDescripteur)
 
 
 # on calcul le nouveau set d'image (avec application de filtre)
-print("\n-- Calcul du set d'images positives --")
-exemplesPositifs = libimg.donneesImages(dataPositif, pathTrain, newSize, tailleDescripteur, etat=1)
+print("\n-- Calcul des vecteurs des images positives --")
+exemplesPositifs = libimg.donneesImages(dataPositif, pathTrain, newSize,
+                                        tailleDescripteur, etat=1)
 
 # Génération des exemples négatifs (nb_neg par images)
 print("\n-- Calcul du set d'images negatives --")
 factor_neg = 10
 print(" -> Calcul des coordonnées de",factor_neg,"négatifs par image...")
-dataNegatif = libimg.exemplesNegatifs(factor_neg, data, pathTrain, newSize, maxrecouvrement=0.2, etat=1)
+dataNegatif = libimg.exemplesNegatifs(factor_neg, data, pathTrain,
+                                      newSize, maxrecouvrement=0.2, etat=1)
 print(" -> Calcul des",len(dataNegatif),"vecteurs descripteurs négatifs...")
-exemplesNegatifs = libimg.donneesImages(dataNegatif, pathTrain, newSize, tailleDescripteur, etat=1)
+exemplesNegatifs = libimg.donneesImages(dataNegatif, pathTrain, newSize,
+                                        tailleDescripteur, etat=1)
 print("-- Génération d'exemple terminée ! --")
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -136,7 +139,9 @@ print("\n-- Création de faux positifs --")
 print(" -> Calcul des coordonnées de faux positifs...")
 # mon ordinateur ne supporte pas le calcul des 1000 d'un coup (env 7 heures): à faire de 100 en 100...
 #dataFp = libimg.fauxPositifs(clf, pathTrain, data, 0, 1000, 0.5, newSize, tailleDescripteur, etat=1)
-dataFp = libimg.fauxPositifs(clf, pathTrain, data, newSize, tailleDescripteur, 0.5, 0, 100, etat=1)
+dataFp = libimg.fauxPositifs(clf, pathTrain, data, newSize, tailleDescripteur,
+                             0.5, 0, 100, etat=1)
+
 dataFp = np.concatenate((dataFp, libimg.fauxPositifs(clf, pathTrain, data, newSize, tailleDescripteur, 0.5, 0, 100, etat=1)), axis=0)
 # SAUVEGARDER la variable après chaque 100 !
 
@@ -164,13 +169,21 @@ clf.fit(exemples,y)
 #Recherche du meilleur C : graphe
 #liblearn.graphValidationCroisee(clf, exemples, 8.5, 9.5, 0.1)
 
-print(" -> Validation croisée...")
-print('validation croisée :', liblearn.validationCroisee(clf, exemples, y, 5))
+#print(" -> Validation croisée...")
+#print('validation croisée :', liblearn.validationCroisee(clf, exemples, y, 5))
 
 # svm.SVC(kernel='linear', C=7.1) -> 5.79
 
 # TODO? Ré-optimisation de C ? 
 print("-- Fin de la création du classifieur --")
+
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Affichage des résultats du classifieur
+
+dataCalc = libimg.calculResultats(clf, 1, pathTrain, newSize, tailleDescripteur,
+                                  etat=1)
+
+
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -182,7 +195,8 @@ libimg.afficher_fenetre_gliss(img, data_f, 1, only_pos=0, animated=0)
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Calcul des résultats pour les images de test
 
-dataCalc = libimg.calculResultats(clf, 1, pathTest, newSize, tailleDescripteur, etat=1)
+dataCalc = libimg.calculResultats(clf, 1, pathTest, newSize, tailleDescripteur,
+                                  etat=1)
 
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -11,6 +11,9 @@ from skimage import feature
 from skimage.transform import rescale
 import os
 
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Récupération des images
+
 
 # retourne la taille du plus petit visage des datas
 def minFace(data, interieur=0) :
@@ -85,6 +88,10 @@ def dataSquare(data, path, interieur=0):
     
     return newData
 
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Création du classifieur
+
+
 # filtre gradient
 def filtreLineaire(image, s=9, visualisation=0):
     #grad = np.gradient(image)
@@ -133,6 +140,8 @@ def donneesImages(data, pathTrain, newsize, tailleDescripteur,etat=0):
         print()
     return images
 
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Génération des exemples négatifs
 
 # gives an negative example from the n^th image
 def negatifRandom(data, pathTrain, newsize, maxrecouvrement=0.2):
@@ -178,7 +187,9 @@ def recouvrement(x1, y1, w1, h1, x2, y2, w2, h2):
     aunion = (w1*h1) + (w2*h2) - ainter
     return ainter/aunion
 
-##############################################################################
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Fenêtre glissante
+
 
 # renvoie l'ensemble des fenêtres glissantes, triées par score
 # renvoie un array de "fenetres" sous la forme score, x, y, w, h
@@ -322,50 +333,17 @@ def fenetre_glissante_multiechelle(clf, scoreValidation, img, newSize,
         cursor += len(data_f)
     return suppressionNonMaximas(data)
 
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Faux positifs et calcul des résultats
 
-def fauxPositifs(clf, pathTrain, data, newSize, tailleDescripteur, scoreValidation,
-                 debut=0, fin=-1, etat=0):
-    data_res = calculResultats(clf, scoreValidation, pathTrain, newSize,
-                               tailleDescripteur, debut, fin, etat)
-    
-    data_res = calculResultatsTrain(clf, data, data_res)
-    
-    return data_res[data_res[:,5]==-1]
-
-# mets les datas sous la forme
-# N x y w h 1 si vrai positif
-# N x y w h -1 si faux positif
-def calculResultatsTrain(clf, data, data_res):
-    for i in range(len(data_res)):
-        [n, x, y, w, h] = data_res[i][0:5]
-        
-        # récupération des coordonnes du visage correspondant à l'image n
-        [xn, yn, wn, hn] = data[int(n) - 1][1:5]
-        
-        if recouvrement(xn, yn, wn, hn, x, y, w, h) < 0.3:
-            data_res[i][5] = -1
-        else:
-            data_res[i][5] = 1
-
-    return data_res
-
-
-# data_res =  N x y w h (-)1 si vrai (faux) positif
-def affichAnalyseResultat(data_res, data):
-    rappel = len(data_res[data_res[:,5]==1]) / len(data)
-    precision =  len(data_res[data_res[:,5]==1]) / len(data_res)
-    
-    return rappel, precision
-
-
-# calcul des résultas sur les "vraies" données, selon le formatage donné
+# calcul des résultas sur les données, selon le formatage donné
 # numeroImage X Y L H score
 def calculResultats(clf, scoreValidation, path, newSize, tailleDescripteur,
                     debut=0, fin=-1, etat=0):
     if fin == -1:
         fin = len(os.listdir(path))
 
-    data_res = np.zeros((10000, 6)) # initialisation de l'array des résultats
+    data_res = np.zeros((100000, 6)) # initialisation de l'array des résultats
     cursor = 0 # indice où sera inséré le prochain résultat
     for i in range(debut, fin):
         if etat:
@@ -386,3 +364,40 @@ def calculResultats(clf, scoreValidation, path, newSize, tailleDescripteur,
         print()
     # renvoie les résultats non nuls
     return data_res[data_res[:,0] != 0]
+
+# mets les datas sous la forme
+# N x y w h 1 si vrai positif
+# N x y w h -1 si faux positif
+def calculResultatsTrain(clf, data, data_res):
+    for i in range(len(data_res)):
+        [n, x, y, w, h] = data_res[i][0:5]
+        
+        # récupération des coordonnes du visage correspondant à l'image n
+        [xn, yn, wn, hn] = data[int(n) - 1][1:5]
+        
+        if recouvrement(xn, yn, wn, hn, x, y, w, h) < 0.3:
+            data_res[i][5] = -1
+        else:
+            data_res[i][5] = 1
+
+    return data_res
+
+# data_res =  N x y w h (-)1 si vrai (faux) positif
+def affichAnalyseResultat(data_res, data):
+    rappel = len(data_res[data_res[:,5]==1]) / len(data)
+    precision =  len(data_res[data_res[:,5]==1]) / len(data_res)
+    
+    return rappel, precision
+
+def fauxPositifs(clf, pathTrain, data, newSize, tailleDescripteur, scoreValidation,
+                 debut=0, fin=-1, etat=0):
+    data_res = calculResultats(clf, scoreValidation, pathTrain, newSize,
+                               tailleDescripteur, debut, fin, etat)
+    
+    rappel, precision = affichAnalyseResultat(data_res, data)
+    
+    print("rappel : ", rappel, ", precision : ", precision)
+    
+    data_res = calculResultatsTrain(clf, data, data_res)
+    
+    return data_res[data_res[:,5]==-1]
