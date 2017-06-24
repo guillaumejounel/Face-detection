@@ -13,7 +13,7 @@ from skimage.transform import rescale
 
 # retourne la taille minimale d'un visage
 def minFace(data, interieur=0) :
-    if interieur == 1:
+    if interieur:
         return int(np.min(data[:,3:]))
     return int(min(np.maximum(data[:, 3], data[:, 4])))
 
@@ -124,6 +124,8 @@ def donneesImages(data, pathTrain, newsize, tailleDescripteur,etat=0):
         if etat:
             pct = round(100*(i/len(data)))
             print("\r"+str(pct//2*"-"+"{}%".format(pct)), end="\r")
+    if etat:
+        print()
     return images
 
 
@@ -158,7 +160,9 @@ def exemplesNegatifs(n, data, pathTrain, newsize, maxrecouvrement=0.2, etat=0):
             newData[i*n+j,:] = negatifRandom(data[i], pathTrain, newsize, maxrecouvrement)
             if etat:
                 pct = round((100*(i*n+j))/(len(data)*n))
-                print("\r"+str(pct//2*"-"+"{}%".format(pct)), end="\r")                
+                print("\r"+str(pct//2*"-"+"{}%".format(pct)), end="\r")     
+    if etat:
+        print()
     return newData
 
 # revoie le recouvrement de deux carrés
@@ -177,7 +181,7 @@ def recouvrement(x1, y1, w1, h1, x2, y2, w2, h2):
 #   carrés où il a été détecté un visage
 # mettre return_pos à 0 pour désactiver ce comportement et obtenir toutes les
 #   carrés analysés
-def fenetre_glissante(clf, img, ratio, newSize, pas_hor, pas_vert, tailleDescripteur, return_pos=1):
+def fenetre_glissante(clf, scoreValidation, img, ratio, newSize, pas_hor, pas_vert, tailleDescripteur, return_pos=1):
     img = color.rgb2gray(img)
 
     # on détermine les bordures de l'image
@@ -207,7 +211,6 @@ def fenetre_glissante(clf, img, ratio, newSize, pas_hor, pas_vert, tailleDescrip
         x_tmp = limite_x - newSize
         y_tmp = i * pas_vert
         img_tmp = img[y_tmp:y_tmp + newSize, x_tmp:x_tmp + newSize]
-        print(img_tmp.shape)
         img_tmp = filtreLineaire(img_tmp)
         
         data[indice] = [clf.decision_function(img_tmp), x_tmp, y_tmp, newSize, newSize]
@@ -229,8 +232,8 @@ def fenetre_glissante(clf, img, ratio, newSize, pas_hor, pas_vert, tailleDescrip
 
     #On remetà la taille de l'image d'origine
     data[:,1:] /= ratio
-    if return_pos == 1:
-        return data[data[:, 0] >= seuil_validation]
+    if return_pos:
+        return data[data[:, 0] >= scoreValidation]
     else:
         return data
 
@@ -252,7 +255,7 @@ def afficher_fenetre_gliss(img, data_fenetre, scoremin, only_pos=0,animated=0):
             ax.imshow(img)
             # Créer le rectangle
         score, xcorner, ycorner, width, height = data_fenetre[i-1]
-        if (score >= scoremin) or (only_pos == 0):
+        if (score >= scoremin) or (not only_pos):
             if score >= scoremin:
                 color = 'g'
                 detections+=1
@@ -273,7 +276,7 @@ def afficher_fenetre_gliss(img, data_fenetre, scoremin, only_pos=0,animated=0):
 
 
 # supprime les boites "non maximales" (facteur de recouvrement)
-def suppressionNonMaximas(data, facteur=0.2):
+def suppressionNonMaximas(data, facteur=0.1):
     # Tri des boîtes par ordre décroissant de score
     data.view('i8,i8,i8,i8,i8')[::-1].sort(order=['f0'], axis=0)
     i = 0
@@ -301,14 +304,14 @@ def suppressionNonMaximas(data, facteur=0.2):
 
 # lance la fenêtre glissante sur différentes échelles, retourne les meilleures
 # fenêtres détectées, après nettoyage des doublons par suppressionNonMaximas()
-def fenetre_glissante_multiechelle(clf, img, newSize, tailleDescripteur, animated=0):
+def fenetre_glissante_multiechelle(clf, scoreValidation, img, newSize, tailleDescripteur, animated=0, return_pos=1):
     data = np.zeros((10000, 5)) # Max 100 fenêtres
     cursor = 0
 
-    for ratio in np.arange(30/min(img.shape), 0.6, 0.1):
+    for ratio in np.arange(newSize/min(img.shape), 0.6, 0.1):
         # print("Fenêtre glissante",round(ratio*100),"%")
-        data_f = fenetre_glissante(clf, rescale(img, ratio, mode='reflect'),
-                                   ratio, newSize, 10,10, tailleDescripteur, return_pos=0)
+        data_f = fenetre_glissante(clf, scoreValidation, rescale(img, ratio, mode='reflect'),
+                                   ratio, newSize, 10,10, tailleDescripteur, return_pos)
         if animated==1:
             afficher_fenetre_gliss(img, data_f, 0, only_pos=0,animated=1)
             print(data_f)
@@ -318,11 +321,15 @@ def fenetre_glissante_multiechelle(clf, img, newSize, tailleDescripteur, animate
     return suppressionNonMaximas(data)
 
 
-def fauxPositifs(clf, pathTrain, data):
+def fauxPositifs(clf, pathTrain, data, scoreValidation, newSize, tailleDescripteur):
     fpos = np.zeros((10000, 5)) # initalisation de l'array des faux positifs
     cursor = 0 # indice où sera inséré le prochain faux positif détecté
 
     for i in range(len(data)):
+        if etat:
+            pct = round(100*(i/len(data)))
+            print("\r"+str(pct//2*"-"+"{}%".format(pct)), end="\r")
+            
         # récupération des coordonnes du visage correspondant à l'image i
         xi, yi, wi, hi = map(int, data[i][1:])
         # affichage de l'avancement i//10% (nombre d'images traitées)
@@ -330,7 +337,7 @@ def fauxPositifs(clf, pathTrain, data):
 
         # détection de visage dans la ième image
         img = np.array(io.imread(pathTrain +"%04d"%(i+1)+".jpg", as_grey=True))
-        data_f = fenetre_glissante_multiechelle(clf, img)
+        data_f = fenetre_glissante_multiechelle(clf, scoreValidation, img, newSize, tailleDescripteur)
         # pour chacun des visages détectés dans la ième image on vérifier le
         # recouvrement avec le visage attendu
         for j in range(len(data_f)):
@@ -341,24 +348,33 @@ def fauxPositifs(clf, pathTrain, data):
                 fpos[cursor] = data_f[j]
                 fpos[cursor, 0] = i+1
                 cursor += 1
+    if etat:
+        print()
 
     return fpos[fpos[:,0]!=0]
 
 
 # calcul des résultas sur les "vraies" données, selon le formatage donné
-def calculResultats(clf, path, nb):
+def calculResultats(clf, scoreValidation, path, nb, newSize, tailleDescripteur, etat=0):
     data_res = np.zeros((10000, 6)) # initialisation de l'array des résultats
     cursor = 0 # indice où sera inséré le prochain résultat
     for i in range(nb):
-        print("Calcul des résultats :",i//10,"%")
+        if etat:
+            pct = round(100*(i/nb))
+            print("\r"+str(pct//2*"-"+"{}%".format(pct)), end="\r")
         # lecture et détection des visages dans l'ième image
         img = np.array(io.imread(path +"%04d"%(i+1)+".jpg", as_grey=True))
-        data_f = fenetre_glissante_multiechelle(clf, img)
+        data_f = fenetre_glissante_multiechelle(clf, scoreValidation, img, newSize, tailleDescripteur)
         # écriture des résultats dans l'array de résultats
         for j in range(len(data_f)):
             data_res[j+cursor, 0] = i+1
             data_res[j+cursor, 1:5] = data_f[j, 1:]
             data_res[j+cursor, 5] = data_f[j, 0]
             cursor += 1
+    if etat:
+        print()
     # renvoie les résultats non nuls
     return data_res[data_res[:,0]!=0]
+
+
+

@@ -41,7 +41,7 @@ data = np.loadtxt(pathFile)
 
 # détermination de la taille des carrés
 newSize = libimg.minFace(data)
-print("taille des carrés : ", newSize)
+print("Taille des carrés :", newSize)
 
 # Calcul des nouvelles datas et de coordonnées
 dataPositif = libimg.dataSquare(data, pathTrain)
@@ -49,14 +49,18 @@ dataPositif = libimg.dataSquare(data, pathTrain)
 #Visualisation d'une image et de son filtre linéaire
 io.imshow(libimg.cropImage(7,dataPositif,pathTrain,newSize))
 libimg.filtreLineaire(color.rgb2gray(libimg.cropImage(7,dataPositif,pathTrain,newSize)), s=9, visualisation=1)
-tailleDescripteur = len(_)
+
+# Calcul de la taille du descripteur
+tailleDescripteur = len(libimg.filtreLineaire(color.rgb2gray(libimg.cropImage(7,dataPositif,pathTrain,newSize)), s=9))
+print("Taille du descripteur :", tailleDescripteur)
+
 
 # on calcul le nouveau set d'image (avec application de filtre)
-print("Calcul du set d'image positif")
-exemplesPositifs = libimg.donneesImages(dataPositif, pathTrain, newSize, tailleDescripteur)
+print("\n-- Calcul du set d'image positif --\n")
+exemplesPositifs = libimg.donneesImages(dataPositif, pathTrain, newSize, tailleDescripteur, etat=1)
 
 # Génération des exemples négatifs (nb_neg par images)
-print("-- Calcul du set d'image negatif --")
+print("\n-- Calcul du set d'image negatif --\n")
 factor_neg = 10
 print(" -> Calcul des coordonnées de",factor_neg,"négatifs par image...")
 dataNegatif = libimg.exemplesNegatifs(factor_neg, data, pathTrain, newSize, maxrecouvrement=0.2, etat=1)
@@ -128,7 +132,7 @@ print('validation croisée :', liblearn.validationCroisee(clf, exemples, y, 5))
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # entrainement sur les faux positifs (env 15mn)
 
-dataFp = libimg.fauxPositifs(clf, pathTrain, data)
+dataFp = libimg.fauxPositifs(clf, pathTrain, data, 1, newSize, tailleDescripteur)
 exFp = libimg.donneesImages(dataFp, pathTrain, newSize)
 exemplesNegatifs = np.concatenate((exemplesNegatifs, exFp), axis=0)
 
@@ -158,15 +162,15 @@ print('validation croisée :', liblearn.validationCroisee(clf, exemples, y, 5))
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-img = np.array(io.imread(pathTest +"%04d"%(131)+".jpg", as_grey=True))
-data_f = libimg.fenetre_glissante_multiechelle(clf, img, newSize, tailleDescripteur, animated=0)
-libimg.afficher_fenetre_gliss(img, data_f, -3, only_pos=1,animated=0)
+img = np.array(io.imread(pathTest +"%04d"%(146)+".jpg", as_grey=True))
+data_f = libimg.fenetre_glissante_multiechelle(clf, 1, img, newSize, tailleDescripteur, animated=0, return_pos=1)
+libimg.afficher_fenetre_gliss(img, data_f, 1, only_pos=0, animated=0)
 
    
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Calcul des résultats pour les images de test
 
-dataCalc = libimg.calculResultats(clf, pathTest, 447)
+dataCalc = libimg.calculResultats(clf, 1, pathTest, 447, newSize, tailleDescripteur, etat=1)
 
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
