@@ -10,12 +10,12 @@ from skimage.feature import hog
 from skimage import feature
 from skimage.transform import rescale
 
-taille_descripteur = 72
-seuil_validation = 0.5
 
 # retourne la taille minimale d'un visage
-def minFace(data) :
-    return int(np.min(data[:,3:]))
+def minFace(data, interieur=0) :
+    if interieur == 1:
+        return int(np.min(data[:,3:]))
+    return int(min(np.maximum(data[:, 3], data[:, 4])))
 
 
 # affiche une image avec le rectangle associé
@@ -46,24 +46,51 @@ def cropImage(n, data, pathTrain, newsize=0):
     return img
 
 # Transforme les rectangles des datas en carrés
-def dataSquare(data):
+def dataSquare(data, path, interieur=0):
     # Récupération des "rectangles"
     newData = np.array(data)
-    # Récupération du minimum entre la largeur et la hauteur
-    minwh = np.minimum(data[:, 3], data[:, 4])
-    # Modification de la largeur
-    newData[:, 1] += (data[:, 3]-minwh)//2
-    # Modification de la hauteur
-    newData[:, 2] += (data[:, 4]-minwh)//2
-    # Transformation des rectangles en carrés
-    newData[:, 3:] = np.transpose(np.array([minwh, minwh]))
+    if interieur:
+        # Récupération du minimum entre la largeur et la hauteur
+        minwh = np.minimum(data[:, 3], data[:, 4])
+        
+        # Modification de la largeur
+        newData[:, 1] += (data[:, 3]-minwh)//2
+               
+        # Modification de la hauteur
+        newData[:, 2] += (data[:, 4]-minwh)//2
+               
+        # Transformation des rectangles en carrés
+        newData[:, 3:] = np.transpose(np.array([minwh, minwh]))
+    
+    else:
+        #Récupération de la taille des images
+        imgsize = np.zeros((len(data), 2))
+        for i in range(len(data)):
+            imgsize[i] = io.imread(path + "%04d" %(data[1, 0]) + ".jpg").shape[:2]
+        
+        # Récupération du maximum entre la largeur et la hauteur
+        maxwh = np.maximum(data[:, 3], data[:, 4])
+        
+        # Modification de la largeur
+        newData[:, 1] -= (maxwh-data[:, 3])//2
+        
+        # Modification de la hauteur
+        newData[:, 2] += (maxwh-data[:, 4])//2
+               
+        # Transformation des rectangles en carrés
+        newData[:, 3:] = np.transpose(np.array([maxwh, maxwh]))
+        
+        return newData[(newData[:,1] >= 0) & (newData[:,1] < imgsize[:,1]) & (newData[:,2] >= 0) & (newData[:,2] < imgsize[:,0])]
+    
     return newData
 
 # filtre gradient
-def filtreLineaire(image):
+def filtreLineaire(image, s=9, visualisation=0):
     #grad = np.gradient(image)
     #return np.sqrt(grad[0]*grad[0]+grad[1]*grad[1])
-    return preprocessing.minmax_scale(hog(image, 8, [10,10], [1,1], False, True))
+    if visualisation:
+        io.imshow(preprocessing.minmax_scale(hog(image, 8, [s,s], [1,1], True, True)[1]))
+    return preprocessing.minmax_scale(hog(image, 8, [s,s], [1,1], False, True))
 
 # Descripteur Multi-block Local Binary Patterns
 # http://www.cbsr.ia.ac.cn/users/scliao/papers/Zhang-ICB07-MBLBP.pdf
@@ -87,23 +114,26 @@ def MBLBPdescriptor(img, pas=0.05, animated=0):
 # images = [ [image1            desc[0] desc[1] ... desc[taille_descripteur]
 #            [symétrique_image1 desc[0] desc[1] ... desc[taille_descripteur]
 #            [image 2 ....]]
-def donneesImages(data, pathTrain, newsize):
+def donneesImages(data, pathTrain, newsize, tailleDescripteur,etat=0):
     # taille = newsize*newsize
-    images = np.zeros((2*len(data),taille_descripteur))
+    images = np.zeros((2*len(data),tailleDescripteur))
     for i in range(len(data)):
         img = color.rgb2gray(cropImage(i, data, pathTrain, newsize))
-        images[2*i] = filtreLineaire(img).reshape(taille_descripteur,)
-        images[2*i+1] = filtreLineaire(np.fliplr(img)).reshape(taille_descripteur,)
+        images[2*i] = filtreLineaire(img).reshape(tailleDescripteur,)
+        images[2*i+1] = filtreLineaire(np.fliplr(img)).reshape(tailleDescripteur,)
+        if etat:
+            pct = round(100*(i/len(data)))
+            print("\r"+str(pct//2*"-"+"{}%".format(pct)), end="\r")
     return images
 
 
 # gives an negative example from the n^th image
-def negatifRandom(data,pathTrain,newsize,n):
+def negatifRandom(data, pathTrain, newsize, maxrecouvrement=0.2):
     # Récupération de l'image et de ses caractéristiques
-    img = np.array(io.imread(pathTrain + "%04d" % (n) + ".jpg"),
+    img = np.array(io.imread(pathTrain + "%04d" % (data[0]) + ".jpg"),
                    dtype=np.uint8)
     # Récupération de ses caractéristiques
-    x1, y1, w1, h1 = map(int, data[n-1][1:])
+    x1, y1, w1, h1 = map(int, data[1:])
     h, w = img.shape[:2]
     # on choisit des images aléatoires dans l'image jusqu'à ce que l'on en
     # trouve une qui ne soit pas le visage (recouvrement < 0.3)
@@ -114,18 +144,21 @@ def negatifRandom(data,pathTrain,newsize,n):
         x = int(np.random.uniform(low=0, high=w-taille))
         y = int(np.random.uniform(low=0, high=h-taille))
         # Test du score de recouvrement de la fenêtre
-        if recouvrement(x1,y1,w1,h1,x,y,taille,taille) < 0.3:
-            return n, x, y, taille, taille
+        if recouvrement(x1,y1,w1,h1,x,y,taille,taille) < maxrecouvrement:
+            return data[0], x, y, taille, taille
 
 
 # renvoie pour chaque image n exemples négatifs
-def exemplesNegatifs(n, data, pathTrain, newsize):
+def exemplesNegatifs(n, data, pathTrain, newsize, maxrecouvrement=0.2, etat=0):
     newData = np.zeros((len(data)*n, 5))
     # Pour chaque image
     for i in range(len(data)):
         # On cherche n exemples négatifs
         for j in range(n):
-            newData[i*n+j,:] = negatifRandom(data,pathTrain,newsize,i+1)
+            newData[i*n+j,:] = negatifRandom(data[i], pathTrain, newsize, maxrecouvrement)
+            if etat:
+                pct = round((100*(i*n+j))/(len(data)*n))
+                print("\r"+str(pct//2*"-"+"{}%".format(pct)), end="\r")                
     return newData
 
 # revoie le recouvrement de deux carrés
@@ -144,15 +177,15 @@ def recouvrement(x1, y1, w1, h1, x2, y2, w2, h2):
 #   carrés où il a été détecté un visage
 # mettre return_pos à 0 pour désactiver ce comportement et obtenir toutes les
 #   carrés analysés
-def fenetre_glissante(clf, img, ratio, w, h, pas_hor, pas_vert, return_pos=1):
+def fenetre_glissante(clf, img, ratio, newSize, pas_hor, pas_vert, tailleDescripteur, return_pos=1):
     img = color.rgb2gray(img)
 
     # on détermine les bordures de l'image
     limite_y, limite_x = img.shape
 
     # calcul du nombre de fenetres glissantes
-    dim_x = int((limite_x - w) / pas_hor) + 1
-    dim_y = int((limite_y - h) / pas_vert) + 1
+    dim_x = int((limite_x - newSize) / pas_hor) + 1
+    dim_y = int((limite_y - newSize) / pas_vert) + 1
     data = np.zeros(((dim_x + 1) * (dim_y + 1) -1, 5))
 
     # print("nb pas_x", dim_x, "nb pas_y", dim_y)
@@ -163,31 +196,34 @@ def fenetre_glissante(clf, img, ratio, w, h, pas_hor, pas_vert, return_pos=1):
         for j in range(0, dim_y):
             x_tmp = i*pas_hor
             y_tmp = j*pas_vert
-            img_tmp = img[y_tmp:y_tmp + h, x_tmp:x_tmp + w]
-            img_tmp = filtreLineaire(img_tmp).reshape(taille_descripteur,)
-            data[indice] = [clf.decision_function(img_tmp), x_tmp, y_tmp, w, h]
+            img_tmp = img[y_tmp:y_tmp + newSize, x_tmp:x_tmp + newSize]
+            img_tmp = filtreLineaire(img_tmp)
+            data[indice] = [clf.decision_function(img_tmp), x_tmp, y_tmp, newSize, newSize]
+            #data[indice] = [clf.predict_proba(img_tmp)[0][1], x_tmp, y_tmp, newSize, newSize]
             indice += 1
 
     # derniere ligne selon y (x = cst)
     for i in range(0, dim_y):
-        x_tmp = limite_x - w
+        x_tmp = limite_x - newSize
         y_tmp = i * pas_vert
-        img_tmp = img[y_tmp:y_tmp + h, x_tmp:x_tmp + w]
-        #img_tmp = np.reshape(img_tmp, (1, h*w))
-        img_tmp = filtreLineaire(img_tmp).reshape(taille_descripteur,)
-        data[indice] = [clf.decision_function(img_tmp), x_tmp, y_tmp, w, h]
+        img_tmp = img[y_tmp:y_tmp + newSize, x_tmp:x_tmp + newSize]
+        print(img_tmp.shape)
+        img_tmp = filtreLineaire(img_tmp)
+        
+        data[indice] = [clf.decision_function(img_tmp), x_tmp, y_tmp, newSize, newSize]
+        #data[indice] = [clf.predict_proba(img_tmp)[0][1], x_tmp, y_tmp, newSize, newSize]
 
         indice += 1
 
     # derniere ligne selon x (y = cst)
     for i in range(0, dim_x):
         x_tmp = i * pas_hor
-        y_tmp = limite_y - h
-        img_tmp = img[y_tmp:y_tmp + h, x_tmp:x_tmp + w]
-        img_tmp = filtreLineaire(img_tmp).reshape(taille_descripteur,)
-        #img_tmp = np.reshape(img_tmp, (1, h*w))
+        y_tmp = limite_y - newSize
+        img_tmp = img[y_tmp:y_tmp + newSize, x_tmp:x_tmp + newSize]
+        img_tmp = filtreLineaire(img_tmp)
 
-        data[indice] = [clf.decision_function(img_tmp), x_tmp, y_tmp, w, h]
+        data[indice] = [clf.decision_function(img_tmp), x_tmp, y_tmp, newSize, newSize]
+        #data[indice] = [clf.predict_proba(img_tmp)[0][1], x_tmp, y_tmp, newSize, newSize]
 
         indice += 1
 
@@ -200,7 +236,7 @@ def fenetre_glissante(clf, img, ratio, w, h, pas_hor, pas_vert, return_pos=1):
 
 
 # affiche une image avec le rectangle associé
-def afficher_fenetre_gliss(img, data_fenetre, pathTrain, scoremin, only_pos=0,animated=0):
+def afficher_fenetre_gliss(img, data_fenetre, scoremin, only_pos=0,animated=0):
     detections = 0
     if animated==0:
         # Créer la figure et les axes
@@ -265,14 +301,17 @@ def suppressionNonMaximas(data, facteur=0.2):
 
 # lance la fenêtre glissante sur différentes échelles, retourne les meilleures
 # fenêtres détectées, après nettoyage des doublons par suppressionNonMaximas()
-def fenetre_glissante_multiechelle(clf, img):
-    data = np.zeros((1000, 5)) # Max 100 fenêtres
+def fenetre_glissante_multiechelle(clf, img, newSize, tailleDescripteur, animated=0):
+    data = np.zeros((10000, 5)) # Max 100 fenêtres
     cursor = 0
 
     for ratio in np.arange(30/min(img.shape), 0.6, 0.1):
         # print("Fenêtre glissante",round(ratio*100),"%")
         data_f = fenetre_glissante(clf, rescale(img, ratio, mode='reflect'),
-                                   ratio, 30, 30, 10,10, return_pos=1)
+                                   ratio, newSize, 10,10, tailleDescripteur, return_pos=0)
+        if animated==1:
+            afficher_fenetre_gliss(img, data_f, 0, only_pos=0,animated=1)
+            print(data_f)
         for i in range(len(data_f)):
             data[i+cursor] = data_f[i]
         cursor += len(data_f)

@@ -22,6 +22,10 @@ from skimage.transform import rescale
 # %bookmark PROJET /Users/guillaume/Cloud/WORK/UTC/GI02/SY32/TDXu/Projet/
 # (à ne faire qu'une fois, normalement c'est persistant)
 # puis lancer la commande "%cd -b PROJET" en début de session.
+# %reload_ext autoreload
+# %autoreload 2
+# %aimport pyfacedetect.image
+# %aimport pyfacedetect.learn
 
 import warnings
 
@@ -40,19 +44,25 @@ newSize = libimg.minFace(data)
 print("taille des carrés : ", newSize)
 
 # Calcul des nouvelles datas et de coordonnées
-dataPositif = libimg.dataSquare(data)
+dataPositif = libimg.dataSquare(data, pathTrain)
 
-# on calcul le nouvel set d'image (en noir & blanc)
+#Visualisation d'une image et de son filtre linéaire
+io.imshow(libimg.cropImage(7,dataPositif,pathTrain,newSize))
+libimg.filtreLineaire(color.rgb2gray(libimg.cropImage(7,dataPositif,pathTrain,newSize)), s=9, visualisation=1)
+tailleDescripteur = len(_)
+
+# on calcul le nouveau set d'image (avec application de filtre)
 print("Calcul du set d'image positif")
-exemplesPositifs = libimg.donneesImages(dataPositif, pathTrain, newSize)
+exemplesPositifs = libimg.donneesImages(dataPositif, pathTrain, newSize, tailleDescripteur)
 
 # Génération des exemples négatifs (nb_neg par images)
-print("Calcul du set d'image negatif")
+print("-- Calcul du set d'image negatif --")
 factor_neg = 10
-dataNegatif = libimg.exemplesNegatifs(factor_neg, data, pathTrain, newSize)
-exemplesNegatifs = libimg.donneesImages(dataNegatif, pathTrain, newSize)
-
-print("Génération d'exemple terminée !")
+print(" -> Calcul des coordonnées de",factor_neg,"négatifs par image...")
+dataNegatif = libimg.exemplesNegatifs(factor_neg, data, pathTrain, newSize, maxrecouvrement=0.2, etat=1)
+print(" -> Calcul des",len(dataNegatif),"vecteurs descripteurs négatifs...")
+exemplesNegatifs = libimg.donneesImages(dataNegatif, pathTrain, newSize, tailleDescripteur, etat=1)
+print("-- Génération d'exemple terminée ! --")
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Création du classifieur
@@ -133,6 +143,7 @@ exemples = np.concatenate((exemplesPositifs, exemplesNegatifs), axis=0)
 
 print("Création du nouveau classifieur")
 #clf = AdaBoostClassifier()
+#clf = RandomForestClassifier()
 clf = svm.SVC(kernel='linear', C=7.1)
 clf.fit(exemples,y)
 
@@ -147,9 +158,9 @@ print('validation croisée :', liblearn.validationCroisee(clf, exemples, y, 5))
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-img = np.array(io.imread(pathTest +"%04d"%(163)+".jpg", as_grey=True))
-data_f = libimg.fenetre_glissante_multiechelle(clf, img)
-libimg.afficher_fenetre_gliss(img, data_f, pathTest, 0, only_pos=0,animated=0)
+img = np.array(io.imread(pathTest +"%04d"%(131)+".jpg", as_grey=True))
+data_f = libimg.fenetre_glissante_multiechelle(clf, img, newSize, tailleDescripteur, animated=0)
+libimg.afficher_fenetre_gliss(img, data_f, -3, only_pos=1,animated=0)
 
    
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
