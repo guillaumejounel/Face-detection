@@ -321,7 +321,7 @@ def fenetre_glissante_multiechelle(clf, scoreValidation, img, newSize, tailleDes
     return suppressionNonMaximas(data)
 
 
-def fauxPositifs(clf, pathTrain, data, scoreValidation, newSize, tailleDescripteur):
+def fauxPositifs(clf, pathTrain, data, scoreValidation, newSize, tailleDescripteur, etat=0):
     fpos = np.zeros((10000, 5)) # initalisation de l'array des faux positifs
     cursor = 0 # indice où sera inséré le prochain faux positif détecté
 

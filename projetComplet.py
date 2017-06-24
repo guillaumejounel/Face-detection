@@ -56,11 +56,11 @@ print("Taille du descripteur :", tailleDescripteur)
 
 
 # on calcul le nouveau set d'image (avec application de filtre)
-print("\n-- Calcul du set d'image positif --\n")
+print("\n-- Calcul du set d'images positives --")
 exemplesPositifs = libimg.donneesImages(dataPositif, pathTrain, newSize, tailleDescripteur, etat=1)
 
 # Génération des exemples négatifs (nb_neg par images)
-print("\n-- Calcul du set d'image negatif --\n")
+print("-- Calcul du set d'images negatives --")
 factor_neg = 10
 print(" -> Calcul des coordonnées de",factor_neg,"négatifs par image...")
 dataNegatif = libimg.exemplesNegatifs(factor_neg, data, pathTrain, newSize, maxrecouvrement=0.2, etat=1)
@@ -87,16 +87,15 @@ exemples = np.concatenate((exemplesPositifs, exemplesNegatifs), axis=0)
 
 y = np.concatenate((np.ones(nb_pos), -np.ones(nb_neg)))
 
-print("Création du classifieur et entrainement initial")
+print("\n-- Création du classifieur SVM --")
 #clf = AdaBoostClassifier()
 clf = svm.SVC(kernel='linear', C=7.1)
+print(" -> Apprentissage initial...")
 clf.fit(exemples,y)
-
-# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Optimisation du classifieur
-
-print('validation croisée :', liblearn.validationCroisee(clf, exemples, y, 5))
-
+print(" -> Validation croisée...")
+print('   - Résultat :', liblearn.validationCroisee(clf, exemples, y, 5))
+print("\n-- Fin de la création du classifieur --")
 
 # AdaBoostClassifier() -> 4.74
 # AdaBoostClassifier(n_estimators=100) -> 4.40
@@ -132,33 +131,42 @@ print('validation croisée :', liblearn.validationCroisee(clf, exemples, y, 5))
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # entrainement sur les faux positifs (env 15mn)
 
-dataFp = libimg.fauxPositifs(clf, pathTrain, data, 1, newSize, tailleDescripteur)
-exFp = libimg.donneesImages(dataFp, pathTrain, newSize)
-exemplesNegatifs = np.concatenate((exemplesNegatifs, exFp), axis=0)
+print("\n-- Création de faux positifs --")
 
+print(" -> Calcul des coordonnées de faux positifs...")
+dataFp = libimg.fauxPositifs(clf, pathTrain, data, 1, newSize, tailleDescripteur, etat=1)
+
+print(" -> Calcul des",len(dataFp),"vecteurs descripteurs...")
+exFp = libimg.donneesImages(dataFp, pathTrain, newSize)
+
+exemplesNegatifs = np.concatenate((exemplesNegatifs, exFp), axis=0)
 nb_pos = exemplesPositifs.shape[0]
 nb_neg = exemplesNegatifs.shape[0]
-
 y = np.concatenate((np.ones(nb_pos), np.zeros(nb_neg)))
 # concaténation des exemples
 exemples = np.concatenate((exemplesPositifs, exemplesNegatifs), axis=0)
 
+print("-- Fin de la création des faux positifs --")
+
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-print("Création du nouveau classifieur")
+print("\n-- Création du nouveau classifieur --")
 #clf = AdaBoostClassifier()
 #clf = RandomForestClassifier()
 clf = svm.SVC(kernel='linear', C=7.1)
+print(" -> Apprentissage...")
 clf.fit(exemples,y)
 
 #Recherche du meilleur C : graphe
 #liblearn.graphValidationCroisee(clf, exemples, 8.5, 9.5, 0.1)
 
+print(" -> Validation croisée...")
 print('validation croisée :', liblearn.validationCroisee(clf, exemples, y, 5))
 
 # svm.SVC(kernel='linear', C=7.1) -> 5.79
 
 # TODO? Ré-optimisation de C ? 
+print("-- Fin de la création du classifieur --")
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
