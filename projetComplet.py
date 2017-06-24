@@ -22,6 +22,10 @@ from skimage.transform import rescale
 # %bookmark PROJET /Users/guillaume/Cloud/WORK/UTC/GI02/SY32/TDXu/Projet/
 # (à ne faire qu'une fois, normalement c'est persistant)
 # puis lancer la commande "%cd -b PROJET" en début de session.
+# %load_ext autoreload
+# %autoreload 2
+# %aimport pyfacedetect.image
+# %aimport pyfacedetect.learn
 
 import warnings
 
@@ -37,22 +41,32 @@ data = np.loadtxt(pathFile)
 
 # détermination de la taille des carrés
 newSize = libimg.minFace(data)
-print("taille des carrés : ", newSize)
+print("Taille des carrés :", newSize)
 
 # Calcul des nouvelles datas et de coordonnées
-dataPositif = libimg.dataSquare(data)
+dataPositif = libimg.dataSquare(data, pathTrain)
 
-# on calcul le nouvel set d'image (en noir & blanc)
-print("Calcul du set d'image positif")
-exemplesPositifs = libimg.donneesImages(dataPositif, pathTrain, newSize)
+#Visualisation d'une image et de son filtre linéaire
+#io.imshow(libimg.cropImage(7,dataPositif,pathTrain,newSize))
+#libimg.filtreLineaire(color.rgb2gray(libimg.cropImage(7,dataPositif,pathTrain,newSize)), s=9, visualisation=1)
+
+# Calcul de la taille du descripteur
+tailleDescripteur = len(libimg.filtreLineaire(color.rgb2gray(libimg.cropImage(7,dataPositif,pathTrain,newSize)), s=9))
+print("Taille du descripteur :", tailleDescripteur)
+
+
+# on calcul le nouveau set d'image (avec application de filtre)
+print("\n-- Calcul du set d'images positives --")
+exemplesPositifs = libimg.donneesImages(dataPositif, pathTrain, newSize, tailleDescripteur, etat=1)
 
 # Génération des exemples négatifs (nb_neg par images)
-print("Calcul du set d'image negatif")
+print("\n-- Calcul du set d'images negatives --")
 factor_neg = 10
-dataNegatif = libimg.exemplesNegatifs(factor_neg, data, pathTrain, newSize)
-exemplesNegatifs = libimg.donneesImages(dataNegatif, pathTrain, newSize)
-
-print("Génération d'exemple terminée !")
+print(" -> Calcul des coordonnées de",factor_neg,"négatifs par image...")
+dataNegatif = libimg.exemplesNegatifs(factor_neg, data, pathTrain, newSize, maxrecouvrement=0.2, etat=1)
+print(" -> Calcul des",len(dataNegatif),"vecteurs descripteurs négatifs...")
+exemplesNegatifs = libimg.donneesImages(dataNegatif, pathTrain, newSize, tailleDescripteur, etat=1)
+print("-- Génération d'exemple terminée ! --")
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Création du classifieur
@@ -73,16 +87,15 @@ exemples = np.concatenate((exemplesPositifs, exemplesNegatifs), axis=0)
 
 y = np.concatenate((np.ones(nb_pos), -np.ones(nb_neg)))
 
-print("Création du classifieur et entrainement initial")
+print("\n-- Création du classifieur SVM --")
 #clf = AdaBoostClassifier()
 clf = svm.SVC(kernel='linear', C=7.1)
+print(" -> Apprentissage initial...")
 clf.fit(exemples,y)
-
-# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Optimisation du classifieur
-
-print('validation croisée :', liblearn.validationCroisee(clf, exemples, y, 5))
-
+# print(" -> Validation croisée...")
+# print('   - Résultat :', liblearn.validationCroisee(clf, exemples, y, 5))
+print("-- Fin de la création du classifieur --")
 
 # AdaBoostClassifier() -> 4.74
 # AdaBoostClassifier(n_estimators=100) -> 4.40
@@ -95,16 +108,7 @@ print('validation croisée :', liblearn.validationCroisee(clf, exemples, y, 5))
 # svm.SVC(kernel='linear', C=7.1) -> 3.30
 
 
-choixC = np.zeros((15, 2))
-cursor = 0
-for i in np.arange(1,15,1):
-    print(round(100*(i-6.5)/(7.5-6.5)),"¨%")
-    clf = svm.SVC(kernel='linear', C=i)
-    clf.fit(exemples,y)
-    choixC[cursor] = [i, liblearn.validationCroisee(clf, exemples, y, 5)]
-    cursor+=1
-
-plt.plot(choixC[0:cursor,],choixC[0:cursor,1],'.-')
+#liblearn.graphValidationCroisee(clf, exemples, 6.5, 7.5, 0.1)
 # C=7.1 pas mal !
 
 
@@ -125,44 +129,60 @@ plt.plot(choixC[0:cursor,],choixC[0:cursor,1],'.-')
 
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-# entrainement sur les faux positifs (env 15mn)
+# entrainement sur les faux positifs (très très long)
 
-dataFp = libimg.fauxPositifs(clf, pathTrain, data)
+print("\n-- Création de faux positifs --")
+
+print(" -> Calcul des coordonnées de faux positifs...")
+# mon ordinateur ne supporte pas le calcul des 1000 d'un coup (env 7 heures): à faire de 100 en 100...
+#dataFp = libimg.fauxPositifs(clf, pathTrain, data, 0, 1000, 0.5, newSize, tailleDescripteur, etat=1)
+dataFp = libimg.fauxPositifs(clf, pathTrain, data, newSize, tailleDescripteur, 0.5, 0, 100, etat=1)
+dataFp = np.concatenate((dataFp, libimg.fauxPositifs(clf, pathTrain, data, newSize, tailleDescripteur, 0.5, 0, 100, etat=1)), axis=0)
+# SAUVEGARDER la variable après chaque 100 !
+
+print(" -> Calcul des",len(dataFp),"vecteurs descripteurs...")
 exFp = libimg.donneesImages(dataFp, pathTrain, newSize)
-exemplesNegatifs = np.concatenate((exemplesNegatifs, exFp), axis=0)
 
+exemplesNegatifs = np.concatenate((exemplesNegatifs, exFp), axis=0)
 nb_pos = exemplesPositifs.shape[0]
 nb_neg = exemplesNegatifs.shape[0]
-
 y = np.concatenate((np.ones(nb_pos), np.zeros(nb_neg)))
 # concaténation des exemples
 exemples = np.concatenate((exemplesPositifs, exemplesNegatifs), axis=0)
 
+print("-- Fin de la création des faux positifs --")
+
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-print("Création du nouveau classifieur")
+print("\n-- Création du nouveau classifieur --")
 #clf = AdaBoostClassifier()
+#clf = RandomForestClassifier()
 clf = svm.SVC(kernel='linear', C=7.1)
+print(" -> Apprentissage...")
 clf.fit(exemples,y)
 
+#Recherche du meilleur C : graphe
+#liblearn.graphValidationCroisee(clf, exemples, 8.5, 9.5, 0.1)
 
+print(" -> Validation croisée...")
 print('validation croisée :', liblearn.validationCroisee(clf, exemples, y, 5))
 
 # svm.SVC(kernel='linear', C=7.1) -> 5.79
 
 # TODO? Ré-optimisation de C ? 
+print("-- Fin de la création du classifieur --")
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-img = np.array(io.imread(pathTest +"%04d"%(163)+".jpg", as_grey=True))
-data_f = libimg.fenetre_glissante_multiechelle(clf, img)
-libimg.afficher_fenetre_gliss(img, data_f, pathTest, 0, only_pos=0,animated=0)
+img = np.array(io.imread(pathTest +"%04d"%(146)+".jpg", as_grey=True))
+data_f = libimg.fenetre_glissante_multiechelle(clf, 1, img, newSize, tailleDescripteur, animated=0, return_pos=1)
+libimg.afficher_fenetre_gliss(img, data_f, 1, only_pos=0, animated=0)
 
    
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Calcul des résultats pour les images de test
 
-dataCalc = libimg.calculResultats(clf, pathTest, 447)
+dataCalc = libimg.calculResultats(clf, 1, pathTest, newSize, tailleDescripteur, etat=1)
 
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
