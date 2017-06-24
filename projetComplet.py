@@ -47,8 +47,8 @@ print("Taille des carrés :", newSize)
 dataPositif = libimg.dataSquare(data, pathTrain)
 
 #Visualisation d'une image et de son filtre linéaire
-io.imshow(libimg.cropImage(7,dataPositif,pathTrain,newSize))
-libimg.filtreLineaire(color.rgb2gray(libimg.cropImage(7,dataPositif,pathTrain,newSize)), s=9, visualisation=1)
+#io.imshow(libimg.cropImage(7,dataPositif,pathTrain,newSize))
+#libimg.filtreLineaire(color.rgb2gray(libimg.cropImage(7,dataPositif,pathTrain,newSize)), s=9, visualisation=1)
 
 # Calcul de la taille du descripteur
 tailleDescripteur = len(libimg.filtreLineaire(color.rgb2gray(libimg.cropImage(7,dataPositif,pathTrain,newSize)), s=9))
@@ -60,7 +60,7 @@ print("\n-- Calcul du set d'images positives --")
 exemplesPositifs = libimg.donneesImages(dataPositif, pathTrain, newSize, tailleDescripteur, etat=1)
 
 # Génération des exemples négatifs (nb_neg par images)
-print("-- Calcul du set d'images negatives --")
+print("\n-- Calcul du set d'images negatives --")
 factor_neg = 10
 print(" -> Calcul des coordonnées de",factor_neg,"négatifs par image...")
 dataNegatif = libimg.exemplesNegatifs(factor_neg, data, pathTrain, newSize, maxrecouvrement=0.2, etat=1)
@@ -95,7 +95,7 @@ clf.fit(exemples,y)
 # Optimisation du classifieur
 print(" -> Validation croisée...")
 print('   - Résultat :', liblearn.validationCroisee(clf, exemples, y, 5))
-print("\n-- Fin de la création du classifieur --")
+print("-- Fin de la création du classifieur --")
 
 # AdaBoostClassifier() -> 4.74
 # AdaBoostClassifier(n_estimators=100) -> 4.40
@@ -129,12 +129,12 @@ print("\n-- Fin de la création du classifieur --")
 
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-# entrainement sur les faux positifs (env 15mn)
+# entrainement sur les faux positifs (très long)
 
 print("\n-- Création de faux positifs --")
 
 print(" -> Calcul des coordonnées de faux positifs...")
-dataFp = libimg.fauxPositifs(clf, pathTrain, data, 1, newSize, tailleDescripteur, etat=1)
+dataFp = libimg.fauxPositifs(clf, pathTrain, data, 0.5, newSize, tailleDescripteur, etat=1)
 
 print(" -> Calcul des",len(dataFp),"vecteurs descripteurs...")
 exFp = libimg.donneesImages(dataFp, pathTrain, newSize)

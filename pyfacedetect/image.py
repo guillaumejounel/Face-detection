@@ -328,15 +328,13 @@ def fauxPositifs(clf, pathTrain, data, scoreValidation, newSize, tailleDescripte
     for i in range(len(data)):
         if etat:
             pct = round(100*(i/len(data)))
-            print("\r"+str(pct//2*"-"+"{}%".format(pct)), end="\r")
+            print("\r"+str(pct//2*"-"+"{}% ({})".format(pct, len(fpos[fpos[:,0]!=0]))), end="\r")
             
         # récupération des coordonnes du visage correspondant à l'image i
         xi, yi, wi, hi = map(int, data[i][1:])
-        # affichage de l'avancement i//10% (nombre d'images traitées)
-        print("Calcul faux positifs :",i//10,"% (", len(fpos[fpos[:,0]!=0]),")")
 
         # détection de visage dans la ième image
-        img = np.array(io.imread(pathTrain +"%04d"%(i+1)+".jpg", as_grey=True))
+        img = np.array(io.imread(pathTrain +"%04d"%(data[i][0])+".jpg", as_grey=True))
         data_f = fenetre_glissante_multiechelle(clf, scoreValidation, img, newSize, tailleDescripteur)
         # pour chacun des visages détectés dans la ième image on vérifier le
         # recouvrement avec le visage attendu
@@ -344,7 +342,7 @@ def fauxPositifs(clf, pathTrain, data, scoreValidation, newSize, tailleDescripte
             xj, yj, wj, hj = map(int, data_f[j][1:])
             # il n'y a pas de recouvrement : le visage détecté est un faux
             # il est donc rajouté à fpos
-            if recouvrement(xj, yj, wj, hj, xi, yi, wi, hi) < 0.3:
+            if recouvrement(xj, yj, wj, hj, xi, yi, wi, hi) < 0.2:
                 fpos[cursor] = data_f[j]
                 fpos[cursor, 0] = i+1
                 cursor += 1
