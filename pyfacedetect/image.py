@@ -321,13 +321,13 @@ def fenetre_glissante_multiechelle(clf, scoreValidation, img, newSize, tailleDes
     return suppressionNonMaximas(data)
 
 
-def fauxPositifs(clf, pathTrain, data, scoreValidation, newSize, tailleDescripteur, etat=0):
+def fauxPositifs(clf, pathTrain, data, debut, fin, scoreValidation, newSize, tailleDescripteur, etat=0):
     fpos = np.zeros((10000, 5)) # initalisation de l'array des faux positifs
     cursor = 0 # indice où sera inséré le prochain faux positif détecté
 
-    for i in range(len(data)):
+    for i in range(debut, fin):
         if etat:
-            pct = round(100*(i/len(data)))
+            pct = round(100*((i-debut)/(fin-debut)))
             print("\r"+str(pct//2*"-"+"{}% ({})".format(pct, len(fpos[fpos[:,0]!=0]))), end="\r")
             
         # récupération des coordonnes du visage correspondant à l'image i

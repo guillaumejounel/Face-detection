@@ -22,7 +22,7 @@ from skimage.transform import rescale
 # %bookmark PROJET /Users/guillaume/Cloud/WORK/UTC/GI02/SY32/TDXu/Projet/
 # (à ne faire qu'une fois, normalement c'est persistant)
 # puis lancer la commande "%cd -b PROJET" en début de session.
-# %reload_ext autoreload
+# %load_ext autoreload
 # %autoreload 2
 # %aimport pyfacedetect.image
 # %aimport pyfacedetect.learn
@@ -129,12 +129,16 @@ print("-- Fin de la création du classifieur --")
 
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-# entrainement sur les faux positifs (très long)
+# entrainement sur les faux positifs (très très long)
 
 print("\n-- Création de faux positifs --")
 
 print(" -> Calcul des coordonnées de faux positifs...")
-dataFp = libimg.fauxPositifs(clf, pathTrain, data, 0.5, newSize, tailleDescripteur, etat=1)
+# mon ordinateur ne supporte pas le calcul des 1000 d'un coup (env 7 heures): à faire de 100 en 100...
+#dataFp = libimg.fauxPositifs(clf, pathTrain, data, 0, 1000, 0.5, newSize, tailleDescripteur, etat=1)
+dataFp = libimg.fauxPositifs(clf, pathTrain, data, 0, 100, 0.5, newSize, tailleDescripteur, etat=1)
+dataFp = np.concatenate((dataFp, libimg.fauxPositifs(clf, pathTrain, data, 0, 100, 0.5, newSize, tailleDescripteur, etat=1)), axis=0)
+# SAUVEGARDER la variable après chaque 100 !
 
 print(" -> Calcul des",len(dataFp),"vecteurs descripteurs...")
 exFp = libimg.donneesImages(dataFp, pathTrain, newSize)
