@@ -9,11 +9,13 @@ import matplotlib.pyplot as plt
 from skimage.feature import hog
 from skimage import feature
 from skimage.transform import rescale
+import os
 
 taille_descripteur = 72
 seuil_validation = 0.5
+newSize = 30
 
-# retourne la taille minimale d'un visage
+# retourne la taille du plus petit visage des datas
 def minFace(data) :
     return int(np.min(data[:,3:]))
 
@@ -21,13 +23,13 @@ def minFace(data) :
 # affiche une image avec le rectangle associé
 def afficherImgRect(n, data, pathTrain):
     # Charger l'image
-    img = np.array(io.imread(pathTrain +"%04d"%(n)+".jpg"), dtype=np.uint8)
+    img = np.array(io.imread(pathTrain +"%04d"%(data[n][0])+".jpg"), dtype=np.uint8)
     # Créer la figure et les axes
     fig,ax = plt.subplots(1)
     # Afficher l'image
     ax.imshow(img)
     # Créer le rectangle
-    xcorner, ycorner, width, height = data[n-1][1:5]
+    xcorner, ycorner, width, height = data[n][1:5]
     rect = patches.Rectangle((xcorner, ycorner), width, height,
                              linewidth=2,edgecolor='r', facecolor='none')
     # Ajouter le rectangle sur l'image
@@ -99,7 +101,7 @@ def donneesImages(data, pathTrain, newsize):
 
 # gives an negative example from the n^th image
 def negatifRandom(data,pathTrain,newsize,n):
-    # Récupération de l'image et de ses caractéristiques
+    # Récupération de l'image
     img = np.array(io.imread(pathTrain + "%04d" % (n) + ".jpg"),
                    dtype=np.uint8)
     # Récupération de ses caractéristiques
@@ -248,25 +250,19 @@ def suppressionNonMaximas(data, facteur=0.2):
         for j in range(i+1, len(data)):
             if data[j][0] != 0:
                 xj, yj, wj, hj = data[j][1:]
-                #print("Comparaison de",i,"et",j, "(recouvrement de ",recouvrement(xi,yi,wi,hi,xj,yj,wj,hj),")")
-                # Si leur recouvrement est supérieur à 50% on ne les considère plus
+                # Si leur recouvrement est supérieur à 50% on considère que
+                # c'est une boite redondante et on la supprime donc
                 if recouvrement(xi,yi,wi,hi,xj,yj,wj,hj) > facteur:
-                    #print("on ne garde pas",j)
                     data[j][0] = 0
-                    # Test : augmentation du score si recouvrement
-                    #data[i][0] += 0.1
         # On passe à la boîte suivante
         i+=1
-        # On saute les boîtes qui ont été éliminées
-        #while i < len(data) and data[i][0] == 0:
-        #    i+=1
     # Retourne les boites qui n'ont pas été éliminées (score != 0)
     return data[data[:,0] != 0]
 
 # lance la fenêtre glissante sur différentes échelles, retourne les meilleures
 # fenêtres détectées, après nettoyage des doublons par suppressionNonMaximas()
 def fenetre_glissante_multiechelle(clf, img):
-    data = np.zeros((1000, 5)) # Max 100 fenêtres
+    data = np.zeros((1000, 5)) # Max 1000 fenêtres
     cursor = 0
 
     for ratio in np.arange(30/min(img.shape), 0.6, 0.1):
@@ -280,34 +276,44 @@ def fenetre_glissante_multiechelle(clf, img):
 
 
 def fauxPositifs(clf, pathTrain, data):
-    fpos = np.zeros((10000, 5)) # initalisation de l'array des faux positifs
-    cursor = 0 # indice où sera inséré le prochain faux positif détecté
+    data_res = calculResultats(clf, pathTrain)
+    
+    data_res = calculResultatsTrain(clf, data, data_res)
+    
+    return data_res[data_res[:,5]==-1]
 
-    for i in range(len(data)):
-        # récupération des coordonnes du visage correspondant à l'image i
-        xi, yi, wi, hi = map(int, data[i][1:])
-        # affichage de l'avancement i//10% (nombre d'images traitées)
-        print("Calcul faux positifs :",i//10,"% (", len(fpos[fpos[:,0]!=0]),")")
 
-        # détection de visage dans la ième image
-        img = np.array(io.imread(pathTrain +"%04d"%(i+1)+".jpg", as_grey=True))
-        data_f = fenetre_glissante_multiechelle(clf, img)
-        # pour chacun des visages détectés dans la ième image on vérifier le
-        # recouvrement avec le visage attendu
-        for j in range(len(data_f)):
-            xj, yj, wj, hj = map(int, data_f[j][1:])
-            # il n'y a pas de recouvrement : le visage détecté est un faux
-            # il est donc rajouté à fpos
-            if recouvrement(xj, yj, wj, hj, xi, yi, wi, hi) < 0.3:
-                fpos[cursor] = data_f[j]
-                fpos[cursor, 0] = i+1
-                cursor += 1
 
-    return fpos[fpos[:,0]!=0]
+# mets les datas sous la forme
+# N x y w h 1 si vrai positif
+# N x y w h -1 si faux positif
+def calculResultatsTrain(clf, data, data_res):
+    for i in range(len(data_res)):
+        [n, x, y, w, h] = data_res[i][0:5]
+        
+        # récupération des coordonnes du visage correspondant à l'image n
+        [xn, yn, wn, hn] = data[int(n) - 1][1:5]
+        
+        if recouvrement(xn, yn, wn, hn, x, y, w, h) < 0.3:
+            data_res[i][5] = -1
+        else:
+            data_res[i][5] = 1
+
+    return data_res
+
+
+# data_res =  N x y w h (-)1 si vrai (faux) positif
+def affichAnalyseResultat(data_res, data):
+    rappel = len(data_res[data_res[:,5]==1]) / len(data)
+    precision =  len(data_res[data_res[:,5]==1]) / len(data_res)
+    
+    return rappel, precision
 
 
 # calcul des résultas sur les "vraies" données, selon le formatage donné
-def calculResultats(clf, path, nb):
+# numeroImage X Y L H score
+def calculResultats(clf, path):
+    nb = len(os.listdir(path))
     data_res = np.zeros((10000, 6)) # initialisation de l'array des résultats
     cursor = 0 # indice où sera inséré le prochain résultat
     for i in range(nb):
@@ -323,3 +329,5 @@ def calculResultats(clf, path, nb):
             cursor += 1
     # renvoie les résultats non nuls
     return data_res[data_res[:,0]!=0]
+
+
