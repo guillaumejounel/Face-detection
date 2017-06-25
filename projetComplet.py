@@ -22,10 +22,6 @@ from skimage.transform import rescale
 # %bookmark PROJET /Users/guillaume/Cloud/WORK/UTC/GI02/SY32/TDXu/Projet/
 # (à ne faire qu'une fois, normalement c'est persistant)
 # puis lancer la commande "%cd -b PROJET" en début de session.
-# %load_ext autoreload
-# %autoreload 2
-# %aimport pyfacedetect.image
-# %aimport pyfacedetect.learn
 
 import warnings
 
@@ -167,30 +163,40 @@ liblearn.graphValidationCroisee(clf, exemples,y, 0.01, 0.2, 0.01)
 # TODO? Ré-optimisation de C ? 
 print("-- Fin de la création du classifieur --")
 
-# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-# Affichage des résultats du classifieur
-
-dataCalc = libimg.calculResultats(clf, 1, pathTrain, newSize, tailleDescripteur,
-                                  etat=1)
-
-
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Visualisation d'un résultat de l'application du classifieur sur une image de test
 
-img = np.array(io.imread(pathTest +"%04d"%(2)+".jpg", as_grey=True))
-data_f = libimg.fenetre_glissante_multiechelle(clf, 0, img, newSize, tailleDescripteur, animated=0, return_pos=1)
+print("\n-- Calcul du résultat pour une image de test --")
+img = np.array(io.imread(pathTest +"%04d"%(139)+".jpg", as_grey=True))
+data_f = libimg.fenetre_glissante_multiechelle(clf, 0, img, newSize,
+                                               tailleDescripteur,animated=0,
+                                               return_pos=1)
 libimg.afficher_fenetre_gliss(img, data_f, 0, only_pos=1, animated=0)
+print("-- Fin du calcul --")
+
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Calcul des résultats sur les images d'entraînement 
+
+print("\n-- Calcul des résultats sur les images d'entraînement --")
+dataCalc = libimg.calculResultats(clf, 0, pathTrain, newSize,
+                                  tailleDescripteur, etat=1)
+print("-- Fin du calcul des résultats --")
 
    
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-# Calcul des résultats pour les images de test
+# Calcul des résultats pour les images de test (environ 3 heures)
 
-dataCalc = libimg.calculResultats(clf, 0, pathTest, newSize, tailleDescripteur, etat=1)
+print("\n-- Calcul des résultats sur les images de test --")
+dataCalc = libimg.calculResultats(clf, 0, pathTest, newSize,
+                                  tailleDescripteur, etat=1)
+print("-- Fin du calcul des résultats --")
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Voir quelques résultats
 
-nbim = 30
+print("\n-- Voir un résultat obtenu sur les images de test --")
+nbim = 306
 img = np.array(io.imread(pathTest +"%04d"%(nbim)+".jpg"), dtype=np.uint8)
 fig,ax = plt.subplots(1)
 ax.imshow(img)
@@ -203,7 +209,11 @@ plt.show()
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Sauvegarde des résultats
+
+print("\n-- Sauvegarde des résultats --")
 np.savetxt("result.txt", dataCalc, fmt="%03i %i %i %i %i %0.2f")
 #exemple : 001 20 32 64 128 0.23
 
+#SVM(kernel="linear", C=0.08) : 2017-06-25 22:26:51	jounel	56.04	48.77	52.15	37.46
+#SVM(kernel="linear", C=7.1) : 2017-06-25 11:41:02	jounel 59.20	49.66	54.01	38.64
 #AdaBoostClassifier() : 2017-06-22 13:01:41	jounel	28.96	23.71	26.08	10.17
