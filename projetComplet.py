@@ -168,12 +168,12 @@ print("-- Fin de la création des faux positifs --")
 print("\n-- Création du nouveau classifieur --")
 #clf = AdaBoostClassifier()
 #clf = RandomForestClassifier()
-clf = svm.SVC(kernel='linear', C=7.1)
+clf = svm.SVC(kernel='linear', C=0.01)
 print(" -> Apprentissage...")
 clf.fit(exemples,y)
 
 #Recherche du meilleur C : graphe
-liblearn.graphValidationCroisee(clf, exemples,y, 0.1, 10, 0.5)
+liblearn.graphValidationCroisee(clf, exemples,y, 0.1, 1.5, 0.5)
 
 #print(" -> Validation croisée...")
 #print('validation croisée :', liblearn.validationCroisee(clf, exemples, y, 5))
@@ -194,8 +194,8 @@ dataCalc = libimg.calculResultats(clf, 1, pathTrain, newSize, tailleDescripteur,
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 img = np.array(io.imread(pathTest +"%04d"%(146)+".jpg", as_grey=True))
-data_f = libimg.fenetre_glissante_multiechelle(clf, 1, img, newSize, tailleDescripteur, animated=0, return_pos=1)
-libimg.afficher_fenetre_gliss(img, data_f, 1, only_pos=0, animated=0)
+data_f = libimg.fenetre_glissante_multiechelle(clf, 0, img, newSize, tailleDescripteur, animated=0, return_pos=1)
+libimg.afficher_fenetre_gliss(img, data_f, 0, only_pos=1, animated=0)
 
    
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

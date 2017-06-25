@@ -98,10 +98,11 @@ def filtreLineaire(image, s=9, visualisation=0):
     #return np.sqrt(grad[0]*grad[0]+grad[1]*grad[1])
     if visualisation:
         io.imshow(preprocessing.minmax_scale(hog(image, 8, [s,s], [1,1], 
-                                                 block_norm='L1', 
+                                                 #block_norm='L1', 
                                                  visualise=True)[1]))
     return preprocessing.minmax_scale(hog(image, 8, [s,s], [1,1],
-                                          block_norm='L1'))
+                                          #block_norm='L1'
+                                          ))
 
 
 # Descripteur Multi-block Local Binary Patterns
@@ -261,14 +262,14 @@ def afficher_fenetre_gliss(img, data_fenetre, scoremin, only_pos=0,animated=0):
         # Créer la figure et les axes
         fig,ax = plt.subplots(1)
         # Afficher l'image
-        ax.imshow(img)
+        ax.imshow(img, cmap='gray')
         # Créer le rectangle
     for i in range(1, np.size(data_fenetre, 0) + 1):
         if animated==1:
             # Créer la figure et les axes
             fig,ax = plt.subplots(1)
             # Afficher l'image
-            ax.imshow(img)
+            ax.imshow(img, cmap='gray')
             # Créer le rectangle
         score, xcorner, ycorner, width, height = data_fenetre[i-1]
         if (score >= scoremin) or (not only_pos):
@@ -319,18 +320,18 @@ def fenetre_glissante_multiechelle(clf, scoreValidation, img, newSize,
                                    return_pos=1):
     data = np.zeros((10000, 5)) # Max 100 fenêtres
     cursor = 0
-
-    for ratio in np.arange(newSize/min(img.shape), 0.6, 0.1):
+    ratio = newSize/min(img.shape)
+    while ratio < 1:
         # print("Fenêtre glissante",round(ratio*100),"%")
         data_f = fenetre_glissante(clf, scoreValidation, rescale(img, ratio, mode='reflect'),
-                                   ratio, newSize, 10,10, tailleDescripteur,
+                                   ratio, newSize, newSize//4,newSize//4, tailleDescripteur,
                                    return_pos)
         if animated==1:
             afficher_fenetre_gliss(img, data_f, 0, only_pos=0,animated=1)
-            print(data_f)
         for i in range(len(data_f)):
             data[i+cursor] = data_f[i]
         cursor += len(data_f)
+        ratio *= 1.3
     return suppressionNonMaximas(data)
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
