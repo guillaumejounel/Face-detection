@@ -56,16 +56,19 @@ print("Taille du descripteur :", tailleDescripteur)
 
 
 # on calcul le nouveau set d'image (avec application de filtre)
-print("\n-- Calcul du set d'images positives --")
-exemplesPositifs = libimg.donneesImages(dataPositif, pathTrain, newSize, tailleDescripteur, etat=1)
+print("\n-- Calcul des vecteurs des images positives --")
+exemplesPositifs = libimg.donneesImages(dataPositif, pathTrain, newSize,
+                                        tailleDescripteur, etat=1)
 
 # Génération des exemples négatifs (nb_neg par images)
 print("\n-- Calcul du set d'images negatives --")
 factor_neg = 10
 print(" -> Calcul des coordonnées de",factor_neg,"négatifs par image...")
-dataNegatif = libimg.exemplesNegatifs(factor_neg, data, pathTrain, newSize, maxrecouvrement=0.2, etat=1)
+dataNegatif = libimg.exemplesNegatifs(factor_neg, data, pathTrain,
+                                      newSize, maxrecouvrement=0.2, etat=1)
 print(" -> Calcul des",len(dataNegatif),"vecteurs descripteurs négatifs...")
-exemplesNegatifs = libimg.donneesImages(dataNegatif, pathTrain, newSize, tailleDescripteur, etat=1)
+exemplesNegatifs = libimg.donneesImages(dataNegatif, pathTrain, newSize,
+                                        tailleDescripteur, etat=1)
 print("-- Génération d'exemple terminée ! --")
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -93,8 +96,8 @@ clf = svm.SVC(kernel='linear', C=7.1)
 print(" -> Apprentissage initial...")
 clf.fit(exemples,y)
 # Optimisation du classifieur
-print(" -> Validation croisée...")
-print('   - Résultat :', liblearn.validationCroisee(clf, exemples, y, 5))
+# print(" -> Validation croisée...")
+# print('   - Résultat :', liblearn.validationCroisee(clf, exemples, y, 5))
 print("-- Fin de la création du classifieur --")
 
 # AdaBoostClassifier() -> 4.74
@@ -172,13 +175,21 @@ clf.fit(exemples,y)
 #Recherche du meilleur C : graphe
 #liblearn.graphValidationCroisee(clf, exemples, 8.5, 9.5, 0.1)
 
-print(" -> Validation croisée...")
-print('validation croisée :', liblearn.validationCroisee(clf, exemples, y, 5))
+#print(" -> Validation croisée...")
+#print('validation croisée :', liblearn.validationCroisee(clf, exemples, y, 5))
 
 # svm.SVC(kernel='linear', C=7.1) -> 5.79
 
 # TODO? Ré-optimisation de C ? 
 print("-- Fin de la création du classifieur --")
+
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Affichage des résultats du classifieur
+
+dataCalc = libimg.calculResultats(clf, 1, pathTrain, newSize, tailleDescripteur,
+                                  etat=1)
+
+
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
