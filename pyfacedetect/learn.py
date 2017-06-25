@@ -21,9 +21,9 @@ def validationCroisee(clf, X, Y, N):
 def graphValidationCroisee(clf, exemples, y, debut, fin, pas):
     choixC = np.zeros(((fin-debut)//pas+1, 2))
     cursor = 0
-    for i in np.arange(debut,fin+pas,pas):
+    for i in np.arange(debut,fin,pas):
         pct = round(100*(i-debut)/(fin-debut))
-        print("\r" + str(pct//2*"-"+"{}% ({})".format(pct, len(data_res[data_res[:,0]!=0]))), end="\r")
+        print("\r" + str(pct//2*"-"+"{}%".format(pct)), end="\r")
         clf = svm.SVC(kernel='linear', C=i)
         clf.fit(exemples,y)
         choixC[cursor] = [i, validationCroisee(clf, exemples, y, 5)]
