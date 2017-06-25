@@ -22,10 +22,6 @@ from skimage.transform import rescale
 # %bookmark PROJET /Users/guillaume/Cloud/WORK/UTC/GI02/SY32/TDXu/Projet/
 # (à ne faire qu'une fois, normalement c'est persistant)
 # puis lancer la commande "%cd -b PROJET" en début de session.
-# %load_ext autoreload
-# %autoreload 2
-# %aimport pyfacedetect.image
-# %aimport pyfacedetect.learn
 
 import warnings
 
@@ -115,22 +111,6 @@ print("-- Fin de la création du classifieur --")
 # C=7.1 pas mal !
 
 
-#The usual way to adjust the C parameter is by a grid search. Set a range of
-# feasible values for C, for instance C in [0,15]. Then make a coarse search
-# in laps of 1: 1,2,3,4,...,15. Look for the average error using a 5 or 10
-# fold cross validation using the training set and keep the best value.
-# Then perform the same procedure but on a finer search. For instance, say
-# the best value (less error) was for C=5. Now look on laps of 0.1 in the
-# range [4.1,5.9].
-
-#C is a trade-off between training error and the flatness of the solution.
-# The larger C is the less the final training error will be. But if you
-# increase C too much you risk losing the generalization properties of the
-# classifier, because it will try to fit as best as possible all the training
-# points (including the possible errors of your dataset). In addition a large
-# C, usually increases the time needed for training. 
-
-
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # entrainement sur les faux positifs (très très long)
 
@@ -139,14 +119,20 @@ print("\n-- Création de faux positifs --")
 print(" -> Calcul des coordonnées de faux positifs...")
 # mon ordinateur ne supporte pas le calcul des 1000 d'un coup (env 7 heures): à faire de 100 en 100...
 #dataFp = libimg.fauxPositifs(clf, pathTrain, data, 0, 1000, 0.5, newSize, tailleDescripteur, etat=1)
-dataFp = libimg.fauxPositifs(clf, pathTrain, data, newSize, tailleDescripteur,
-                             0.5, 0, 100, etat=1)
-
-dataFp = np.concatenate((dataFp, libimg.fauxPositifs(clf, pathTrain, data, newSize, tailleDescripteur, 0.5, 0, 100, etat=1)), axis=0)
+dataFp = libimg.fauxPositifs(clf, pathTrain, data, 0, 100, 0.5, newSize, tailleDescripteur, etat=1)
+dataFp = np.concatenate((dataFp, libimg.fauxPositifs(clf, pathTrain, data, 100, 200, 0.5, newSize, tailleDescripteur, etat=1)), axis=0)
+dataFp = np.concatenate((dataFp, libimg.fauxPositifs(clf, pathTrain, data, 200, 300, 0.5, newSize, tailleDescripteur, etat=1)), axis=0)
+dataFp = np.concatenate((dataFp, libimg.fauxPositifs(clf, pathTrain, data, 300, 400, 0.5, newSize, tailleDescripteur, etat=1)), axis=0)
+dataFp = np.concatenate((dataFp, libimg.fauxPositifs(clf, pathTrain, data, 400, 500, 0.5, newSize, tailleDescripteur, etat=1)), axis=0)
+dataFp = np.concatenate((dataFp, libimg.fauxPositifs(clf, pathTrain, data, 500, 600, 0.5, newSize, tailleDescripteur, etat=1)), axis=0)
+dataFp = np.concatenate((dataFp, libimg.fauxPositifs(clf, pathTrain, data, 600, 700, 0.5, newSize, tailleDescripteur, etat=1)), axis=0)
+dataFp = np.concatenate((dataFp, libimg.fauxPositifs(clf, pathTrain, data, 700, 800, 0.5, newSize, tailleDescripteur, etat=1)), axis=0)
+dataFp = np.concatenate((dataFp, libimg.fauxPositifs(clf, pathTrain, data, 800, 900, 0.5, newSize, tailleDescripteur, etat=1)), axis=0)
+dataFp = np.concatenate((dataFp, libimg.fauxPositifs(clf, pathTrain, data, 900, 1000, 0.5, newSize, tailleDescripteur, etat=1)), axis=0)
 # SAUVEGARDER la variable après chaque 100 !
 
 print(" -> Calcul des",len(dataFp),"vecteurs descripteurs...")
-exFp = libimg.donneesImages(dataFp, pathTrain, newSize)
+exFp = libimg.donneesImages(dataFp, pathTrain, newSize, tailleDescripteur)
 
 exemplesNegatifs = np.concatenate((exemplesNegatifs, exFp), axis=0)
 nb_pos = exemplesPositifs.shape[0]
@@ -162,12 +148,12 @@ print("-- Fin de la création des faux positifs --")
 print("\n-- Création du nouveau classifieur --")
 #clf = AdaBoostClassifier()
 #clf = RandomForestClassifier()
-clf = svm.SVC(kernel='linear', C=7.1)
+clf = svm.SVC(kernel='linear', C=0.08)
 print(" -> Apprentissage...")
 clf.fit(exemples,y)
 
 #Recherche du meilleur C : graphe
-#liblearn.graphValidationCroisee(clf, exemples, 8.5, 9.5, 0.1)
+liblearn.graphValidationCroisee(clf, exemples,y, 0.01, 0.2, 0.01)
 
 #print(" -> Validation croisée...")
 #print('validation croisée :', liblearn.validationCroisee(clf, exemples, y, 5))
@@ -177,32 +163,40 @@ clf.fit(exemples,y)
 # TODO? Ré-optimisation de C ? 
 print("-- Fin de la création du classifieur --")
 
-# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-# Affichage des résultats du classifieur
-
-dataCalc = libimg.calculResultats(clf, 1, pathTrain, newSize, tailleDescripteur,
-                                  etat=1)
-
-
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Visualisation d'un résultat de l'application du classifieur sur une image de test
 
-img = np.array(io.imread(pathTest +"%04d"%(146)+".jpg", as_grey=True))
-data_f = libimg.fenetre_glissante_multiechelle(clf, 1, img, newSize, tailleDescripteur, animated=0, return_pos=1)
-libimg.afficher_fenetre_gliss(img, data_f, 1, only_pos=0, animated=0)
+print("\n-- Calcul du résultat pour une image de test --")
+img = np.array(io.imread(pathTest +"%04d"%(139)+".jpg", as_grey=True))
+data_f = libimg.fenetre_glissante_multiechelle(clf, 0, img, newSize,
+                                               tailleDescripteur,animated=0,
+                                               return_pos=1)
+libimg.afficher_fenetre_gliss(img, data_f, 0, only_pos=1, animated=0)
+print("-- Fin du calcul --")
+
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Calcul des résultats sur les images d'entraînement 
+
+print("\n-- Calcul des résultats sur les images d'entraînement --")
+dataCalc = libimg.calculResultats(clf, 0, pathTrain, newSize,
+                                  tailleDescripteur, etat=1)
+print("-- Fin du calcul des résultats --")
 
    
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-# Calcul des résultats pour les images de test
+# Calcul des résultats pour les images de test (environ 3 heures)
 
-dataCalc = libimg.calculResultats(clf, 1, pathTest, newSize, tailleDescripteur,
-                                  etat=1)
-
+print("\n-- Calcul des résultats sur les images de test --")
+dataCalc = libimg.calculResultats(clf, 0, pathTest, newSize,
+                                  tailleDescripteur, etat=1)
+print("-- Fin du calcul des résultats --")
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Voir quelques résultats
 
-nbim = 413
+print("\n-- Voir un résultat obtenu sur les images de test --")
+nbim = 306
 img = np.array(io.imread(pathTest +"%04d"%(nbim)+".jpg"), dtype=np.uint8)
 fig,ax = plt.subplots(1)
 ax.imshow(img)
@@ -215,23 +209,11 @@ plt.show()
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Sauvegarde des résultats
+
+print("\n-- Sauvegarde des résultats --")
 np.savetxt("result.txt", dataCalc, fmt="%03i %i %i %i %i %0.2f")
 #exemple : 001 20 32 64 128 0.23
 
+#SVM(kernel="linear", C=0.08) : 2017-06-25 22:26:51	jounel	56.04	48.77	52.15	37.46
+#SVM(kernel="linear", C=7.1) : 2017-06-25 11:41:02	jounel 59.20	49.66	54.01	38.64
 #AdaBoostClassifier() : 2017-06-22 13:01:41	jounel	28.96	23.71	26.08	10.17
-
-
-# TODO POUR LE RAPPORT :
-    
-#Choix des paramètres (à justifier pour le projet) :
-
-#- Taille de la fenêtre glissante (plus petit visage, on préfère réduire la taille de l'image que zoomer)
-#- Nombre d'exemples négatifs aléatoires (+ il y en a, plus c'est performant, mais coût ! ~10-20)
-#- Taille du pas (spatial et échelle) - relatif à la taille de l'image
-#- choix du vecteur descripteur
-#- choix du classifieur (et de ses paramètres)
-
-#Il faut aussi transformer les données de rectangles en carrés (en prenant le centre par exemple, attention il ne faut pas sortir de l'image)
-
-# Score des boîtes entre 0 et +\infty (distance à la frontière).
-
