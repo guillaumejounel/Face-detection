@@ -332,7 +332,7 @@ def fenetre_glissante_multiechelle(clf, scoreValidation, img, newSize,
             data[i+cursor] = data_f[i]
         cursor += len(data_f)
         ratio *= 1.3
-    return suppressionNonMaximas(data)
+    return data
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Faux positifs et calcul des résultats
