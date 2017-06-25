@@ -137,11 +137,19 @@ print(" -> Calcul des coordonnées de faux positifs...")
 # mon ordinateur ne supporte pas le calcul des 1000 d'un coup (env 7 heures): à faire de 100 en 100...
 #dataFp = libimg.fauxPositifs(clf, pathTrain, data, 0, 1000, 0.5, newSize, tailleDescripteur, etat=1)
 dataFp = libimg.fauxPositifs(clf, pathTrain, data, 0, 100, 0.5, newSize, tailleDescripteur, etat=1)
-dataFp = np.concatenate((dataFp, libimg.fauxPositifs(clf, pathTrain, data, 0, 100, 0.5, newSize, tailleDescripteur, etat=1)), axis=0)
+dataFp = np.concatenate((dataFp, libimg.fauxPositifs(clf, pathTrain, data, 100, 200, 0.5, newSize, tailleDescripteur, etat=1)), axis=0)
+dataFp = np.concatenate((dataFp, libimg.fauxPositifs(clf, pathTrain, data, 200, 300, 0.5, newSize, tailleDescripteur, etat=1)), axis=0)
+dataFp = np.concatenate((dataFp, libimg.fauxPositifs(clf, pathTrain, data, 300, 400, 0.5, newSize, tailleDescripteur, etat=1)), axis=0)
+dataFp = np.concatenate((dataFp, libimg.fauxPositifs(clf, pathTrain, data, 400, 500, 0.5, newSize, tailleDescripteur, etat=1)), axis=0)
+dataFp = np.concatenate((dataFp, libimg.fauxPositifs(clf, pathTrain, data, 500, 600, 0.5, newSize, tailleDescripteur, etat=1)), axis=0)
+dataFp = np.concatenate((dataFp, libimg.fauxPositifs(clf, pathTrain, data, 600, 700, 0.5, newSize, tailleDescripteur, etat=1)), axis=0)
+dataFp = np.concatenate((dataFp, libimg.fauxPositifs(clf, pathTrain, data, 700, 800, 0.5, newSize, tailleDescripteur, etat=1)), axis=0)
+dataFp = np.concatenate((dataFp, libimg.fauxPositifs(clf, pathTrain, data, 800, 900, 0.5, newSize, tailleDescripteur, etat=1)), axis=0)
+dataFp = np.concatenate((dataFp, libimg.fauxPositifs(clf, pathTrain, data, 900, 1000, 0.5, newSize, tailleDescripteur, etat=1)), axis=0)
 # SAUVEGARDER la variable après chaque 100 !
 
 print(" -> Calcul des",len(dataFp),"vecteurs descripteurs...")
-exFp = libimg.donneesImages(dataFp, pathTrain, newSize)
+exFp = libimg.donneesImages(dataFp, pathTrain, newSize, tailleDescripteur)
 
 exemplesNegatifs = np.concatenate((exemplesNegatifs, exFp), axis=0)
 nb_pos = exemplesPositifs.shape[0]
@@ -182,13 +190,13 @@ libimg.afficher_fenetre_gliss(img, data_f, 1, only_pos=0, animated=0)
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Calcul des résultats pour les images de test
 
-dataCalc = libimg.calculResultats(clf, 1, pathTest, 447, newSize, tailleDescripteur, etat=1)
+dataCalc = libimg.calculResultats(clf, 0, pathTest, 447, newSize, tailleDescripteur, etat=1)
 
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Voir quelques résultats
 
-nbim = 413
+nbim = 30
 img = np.array(io.imread(pathTest +"%04d"%(nbim)+".jpg"), dtype=np.uint8)
 fig,ax = plt.subplots(1)
 ax.imshow(img)
