@@ -43,7 +43,7 @@ def afficherImgRect(n, data, pathTrain):
 def cropImage(n, data, pathTrain, newsize=0):
     img = np.array(io.imread(pathTrain + "%04d" %(data[n, 0]) + ".jpg"),
                    dtype=np.uint8)
-    x, y, w, h = map(int, data[n][1:])
+    x, y, w, h = map(int, data[n][1:5])
     img = img[y:y+h, x:x+w]
     if newsize:
         img = resize(img, (newsize, newsize), mode='reflect')
@@ -385,10 +385,33 @@ def calculResultatsTrain(clf, data, data_res):
 
 # data_res =  N x y w h (-)1 si vrai (faux) positif
 def affichAnalyseResultat(data_res, data):
-    rappel = len(data_res[data_res[:,5]==1]) / len(data)
-    precision =  len(data_res[data_res[:,5]==1]) / len(data_res)
+    rappel = len(data_res[data_res[:,5]!=-1]) / len(data)
+    precision =  len(data_res[data_res[:,5]!=-1]) / len(data_res)
     
     return rappel, precision
+
+# data_calc = # numeroImage X Y L H score
+def courbePrecisionRappel(data_calc, data, show = 0):
+    # tri des datas dans par ordre décroissant de score
+    data_res_sort = data_calc[data_calc[:,5].argsort()]
+
+    data_res = calculResultatsTrain(0, data, data_res_sort)
+    
+    # on rajoute les données une à unes et on calcule de nouveau précision et
+    # rappel
+    rappel_precision = np.zeros((len(data_res) - 1, 2))
+    for i in range(1, len(data_res)):
+        rappel_precision[i - 1] = affichAnalyseResultat(data_res[len(data_res)-i:],
+                                                        data)
+    
+    if show == 1:
+        plt.plot(rappel_precision[:,0], rappel_precision[:,1])
+        plt.ylabel('Précision')
+        plt.xlabel('Rappel')
+        plt.show()
+        
+    return rappel_precision
+    
 
 def fauxPositifs(clf, pathTrain, data, newSize, tailleDescripteur, scoreValidation,
                  debut=0, fin=-1, etat=0):
