@@ -173,7 +173,7 @@ print(" -> Apprentissage...")
 clf.fit(exemples,y)
 
 #Recherche du meilleur C : graphe
-#liblearn.graphValidationCroisee(clf, exemples, 8.5, 9.5, 0.1)
+liblearn.graphValidationCroisee(clf, exemples,y, 0.1, 10, 0.5)
 
 #print(" -> Validation croisée...")
 #print('validation croisée :', liblearn.validationCroisee(clf, exemples, y, 5))
