@@ -115,22 +115,6 @@ print("-- Fin de la création du classifieur --")
 # C=7.1 pas mal !
 
 
-#The usual way to adjust the C parameter is by a grid search. Set a range of
-# feasible values for C, for instance C in [0,15]. Then make a coarse search
-# in laps of 1: 1,2,3,4,...,15. Look for the average error using a 5 or 10
-# fold cross validation using the training set and keep the best value.
-# Then perform the same procedure but on a finer search. For instance, say
-# the best value (less error) was for C=5. Now look on laps of 0.1 in the
-# range [4.1,5.9].
-
-#C is a trade-off between training error and the flatness of the solution.
-# The larger C is the less the final training error will be. But if you
-# increase C too much you risk losing the generalization properties of the
-# classifier, because it will try to fit as best as possible all the training
-# points (including the possible errors of your dataset). In addition a large
-# C, usually increases the time needed for training. 
-
-
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # entrainement sur les faux positifs (très très long)
 
@@ -173,7 +157,7 @@ print(" -> Apprentissage...")
 clf.fit(exemples,y)
 
 #Recherche du meilleur C : graphe
-liblearn.graphValidationCroisee(clf, exemples,y, 0.1, 10, 0.5)
+liblearn.graphValidationCroisee(clf, exemples,y, 0.01, 0.2, 0.01)
 
 #print(" -> Validation croisée...")
 #print('validation croisée :', liblearn.validationCroisee(clf, exemples, y, 5))
@@ -224,19 +208,3 @@ np.savetxt("result.txt", dataCalc, fmt="%03i %i %i %i %i %0.2f")
 #exemple : 001 20 32 64 128 0.23
 
 #AdaBoostClassifier() : 2017-06-22 13:01:41	jounel	28.96	23.71	26.08	10.17
-
-
-# TODO POUR LE RAPPORT :
-    
-#Choix des paramètres (à justifier pour le projet) :
-
-#- Taille de la fenêtre glissante (plus petit visage, on préfère réduire la taille de l'image que zoomer)
-#- Nombre d'exemples négatifs aléatoires (+ il y en a, plus c'est performant, mais coût ! ~10-20)
-#- Taille du pas (spatial et échelle) - relatif à la taille de l'image
-#- choix du vecteur descripteur
-#- choix du classifieur (et de ses paramètres)
-
-#Il faut aussi transformer les données de rectangles en carrés (en prenant le centre par exemple, attention il ne faut pas sortir de l'image)
-
-# Score des boîtes entre 0 et +\infty (distance à la frontière).
-

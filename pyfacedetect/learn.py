@@ -28,4 +28,5 @@ def graphValidationCroisee(clf, exemples, y, debut, fin, pas):
         clf.fit(exemples,y)
         choixC[cursor] = [i, validationCroisee(clf, exemples, y, 5)]
         cursor+=1
+    plt.figure(figsize=(10,5))
     plt.plot(choixC[:,0],choixC[:,1],'.-')
